@@ -74,6 +74,12 @@ export async function sendRealWhatsAppMessage(params: {
   booking?: Booking;
 }): Promise<{ sent: boolean; provider?: string; error?: string; details?: unknown }> {
   const state = readDB();
+  const publicBaseUrl = (
+    process.env.PUBLIC_BASE_URL || "https://stilizadevotion.vercel.app"
+  ).replace(/\/$/, "");
+  const qrImageUrl = params.booking
+    ? `${publicBaseUrl}/api/qr/${encodeURIComponent(params.booking.qrToken)}`
+    : undefined;
   const runtimeToken = (
     state.aiSettings as unknown as { metaAccessToken?: string }
   )?.metaAccessToken;
@@ -146,6 +152,27 @@ export async function sendRealWhatsAppMessage(params: {
                 type: "image",
                 image: {
                   id: mediaId,
+                  caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
+                },
+              }),
+            }
+          );
+        } else if (qrImageUrl) {
+          await fetch(
+            `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${metaToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                recipient_type: "individual",
+                to: recipient,
+                type: "image",
+                image: {
+                  link: qrImageUrl,
                   caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
                 },
               }),
