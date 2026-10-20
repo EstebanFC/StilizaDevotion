@@ -1,4 +1,35 @@
 export type Discipline = "reformer" | "hot_pilates";
+export type StudioBrand = "Stiliza" | "Devotion";
+
+export interface Branch {
+  id: string;
+  brand: StudioBrand;
+  name: string; // e.g. "Stiliza Polanco", "Devotion Roma Norte", "Stiliza Lomas", "Devotion Condesa"
+  address: string;
+  kiosksCount: number;
+  monthlyRevenueMXN: number;
+}
+
+export interface Coach {
+  id: string;
+  name: string;
+  avatar: string;
+  specialty: Discipline | "ambas";
+  occupancyRate: number; // e.g. 96%
+  vibeBadge: string; // e.g. "🔥 Queen del Burn", "✨ Técnica Impecable"
+}
+
+export interface StudioPromoEvent {
+  id: string;
+  title: string;
+  description: string;
+  type: "evento" | "promo" | "clase_especial";
+  dateLabel: string;
+  highlightBadge: string; // e.g. "2x1 Tokens", "Cupo Limitado", "DJ Live Set"
+  priceText: string;
+  branchId: string | "all";
+  branchName: string;
+}
 
 export interface SpotConfig {
   id: string; // e.g. "R-01" or "M-01"
@@ -6,17 +37,23 @@ export interface SpotConfig {
   shortLabel: string; // e.g. "R1" or "M1"
   row: number;
   col: number;
-  zone: "Frente al Espejo" | "Fila Central" | "Zona Posterior" | "Cerca de Paneles IR";
+  zone:
+    | "Frente al Espejo"
+    | "Fila Central"
+    | "Zona Posterior"
+    | "Cerca de Paneles IR";
   type: "reformer_machine" | "hot_mat";
   status?: "available" | "maintenance";
 }
 
 export interface StudioRoom {
   id: string;
-  branchName: string; // e.g. "Sucursal Polanco / Principal" or "Sucursal Roma / Sur"
-  name: string; // e.g. "Salón Reformer Studio A" or "Hot Chamber Infrared B"
+  branchId: string;
+  branchName: string;
+  brand: StudioBrand;
+  name: string;
   discipline: Discipline;
-  temperature: string; // e.g. "21°C Climatizado" | "38°C Calor Infrarrojo + 45% Humedad"
+  temperature: string;
   rows: number;
   cols: number;
   spots: SpotConfig[];
@@ -25,17 +62,18 @@ export interface StudioRoom {
 export interface ClassPackage {
   id: string;
   name: string;
-  credits: number; // 999 for unlimited
+  credits: number;
   priceMXN: number;
   validityDays: number;
   allowedDisciplines: Discipline[];
   badge?: string;
+  promoTag?: string;
 }
 
 export interface Client {
   id: string;
   name: string;
-  phone: string; // WhatsApp format e.g. "+52 55 4123 8910"
+  phone: string;
   email: string;
   avatarInitials: string;
   activePackageName: string;
@@ -44,17 +82,21 @@ export interface Client {
   packageExpiresAt: string;
   status: "activo" | "pocos_creditos" | "sin_creditos";
   totalAttended: number;
+  noShowsCount?: number;
   preferredSpot?: string;
+  homeBranchName?: string;
   medicalNotes?: string;
   joinedAt: string;
 }
 
 export interface ClassSession {
   id: string;
-  title: string; // e.g. "Sculpt & Flow Reformer", "Inferno Hot Pilates 38°"
+  title: string;
   discipline: Discipline;
-  roomId: string;
+  branchId: string;
   branchName: string;
+  brand: StudioBrand;
+  roomId: string;
   roomName: string;
   instructor: string;
   instructorAvatar: string;
@@ -63,29 +105,33 @@ export interface ClassSession {
   durationMinutes: number;
   level: "Todos los niveles" | "Intermedio" | "Avanzado" | "Principiantes";
   intensity: "Media" | "Alta" | "Intensa 🔥";
+  isSpecialClass?: boolean;
+  specialBadge?: string;
 }
 
 export interface Booking {
   id: string;
-  qrToken: string; // e.g. "SD-2026-R04-891A"
+  qrToken: string;
   clientId: string;
   clientName: string;
   clientPhone: string;
   sessionId: string;
   sessionTitle: string;
   discipline: Discipline;
+  branchId?: string;
   branchName: string;
   roomName: string;
   instructor: string;
   date: string;
   startTime: string;
-  spotId: string; // e.g. "R-04"
-  spotLabel: string; // e.g. "Máquina Reformer #04"
+  spotId: string;
+  spotLabel: string;
   status: "confirmada" | "asistio" | "cancelada";
-  bookedVia: "whatsapp_bot" | "web_portal" | "crm_admin";
+  bookedVia: "whatsapp_bot" | "web_portal" | "crm_admin" | "kiosk_tablet";
   whatsappSent: boolean;
   createdAt: string;
   checkedInAt?: string;
+  checkedInKioskLabel?: string;
 }
 
 export interface ChatMessage {
@@ -107,6 +153,9 @@ export interface KioskCheckInResult {
 }
 
 export interface CRMDatabaseState {
+  branches: Branch[];
+  coaches: Coach[];
+  promosAndEvents: StudioPromoEvent[];
   rooms: StudioRoom[];
   packages: ClassPackage[];
   clients: Client[];

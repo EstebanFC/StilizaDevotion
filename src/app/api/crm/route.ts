@@ -8,7 +8,13 @@ import {
 } from "@/lib/db";
 import { processAIChatTurn } from "@/lib/ai-bot";
 import { sendRealWhatsAppMessage } from "@/lib/whatsapp-sender";
-import { ClassSession, Client } from "@/types/crm";
+import {
+  Branch,
+  ClassSession,
+  Client,
+  Coach,
+  StudioPromoEvent,
+} from "@/types/crm";
 
 export async function GET() {
   const state = readDB();
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
         clientId,
         sessionId,
         spotId,
-        bookedVia: bookedVia || "web_portal",
+        bookedVia: bookedVia || "kiosk_tablet",
       });
       if (!res.success) {
         return NextResponse.json(
@@ -54,8 +60,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "checkin_qr") {
-      const { qrToken } = body;
-      const { result, state } = processKioskQRScan(String(qrToken || ""));
+      const { qrToken, kioskLabel } = body;
+      const { result, state } = processKioskQRScan(
+        String(qrToken || ""),
+        kioskLabel
+      );
       return NextResponse.json({
         success: result.success,
         result,
@@ -109,11 +118,10 @@ export async function POST(req: NextRequest) {
       }
       writeDB(state);
 
-      // Send an immediate test QR pass to the user's phone!
       const sampleBooking = state.bookings[0];
       const sendRes = await sendRealWhatsAppMessage({
         toPhone: testRecipientPhone || "+52 987 871 0684",
-        text: "¡Hola! 🤍 Tu conexión de *Stiliza Devotion CRM + Concierge IA* con WhatsApp está activa. Aquí tienes un pase QR de prueba para escanear en la tablet del estudio:",
+        text: "¡Hola! 🤍 Tu conexión de *Stiliza & Devotion CRM + Concierge IA* con WhatsApp está activa. Aquí tienes un pase QR de prueba para escanear en la tablet del Kiosco:",
         booking: sampleBooking,
       });
 
@@ -138,7 +146,10 @@ export async function POST(req: NextRequest) {
 
       client.activePackageName = pkg.name;
       client.creditsRemaining += pkg.credits;
-      client.creditsTotal = Math.max(client.creditsTotal, client.creditsRemaining);
+      client.creditsTotal = Math.max(
+        client.creditsTotal,
+        client.creditsRemaining
+      );
       client.status = "activo";
 
       const expDate = new Date();
@@ -153,7 +164,7 @@ export async function POST(req: NextRequest) {
         id: `msg-pkg-${Date.now()}`,
         clientId: client.id,
         sender: "bot",
-        text: `🎉 ¡Hola ${client.name.split(" ")[0]}! Se ha activado tu paquete **${pkg.name}** (+${pkg.credits} créditos). Ahora tienes **${client.creditsRemaining} clases disponibles**. ¿Qué clase agendamos hoy?`,
+        text: `🎉 ¡Hola ${client.name.split(" ")[0]}! Se ha activado tu paquete **${pkg.name}** (+${pkg.credits} tokens). Ahora tienes **${client.creditsRemaining} tokens disponibles**. ¿Qué clase agendamos hoy?`,
         timestamp: nowTime,
       });
 
@@ -162,7 +173,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "create_client") {
-      const { name, phone, email, packageId, preferredSpot, medicalNotes } = body;
+      const {
+        name,
+        phone,
+        email,
+        packageId,
+        preferredSpot,
+        medicalNotes,
+        homeBranchName,
+      } = body;
       const state = readDB();
       const pkg =
         state.packages.find((p) => p.id === packageId) || state.packages[1];
@@ -186,7 +205,10 @@ export async function POST(req: NextRequest) {
         packageExpiresAt: "2026-11-30",
         status: "activo",
         totalAttended: 0,
+        noShowsCount: 0,
         preferredSpot: preferredSpot || "R-02",
+        homeBranchName:
+          homeBranchName || state.branches[0]?.name || "Stiliza · Polanco",
         medicalNotes: medicalNotes || "",
         joinedAt: new Date().toISOString().split("T")[0],
       };
@@ -196,7 +218,7 @@ export async function POST(req: NextRequest) {
         id: `msg-welcome-${Date.now()}`,
         clientId: newClient.id,
         sender: "bot",
-        text: `¡Bienvenida a **Stiliza Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta está activa con **${pkg.name}** (${pkg.credits} créditos). Escríbeme por aquí cuando quieras reservar tu máquina Reformer o tapete de Hot Pilates y te enviaré tu código QR de acceso.`,
+        text: `¡Bienvenida a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta está activa con **${pkg.name}** (${pkg.credits} tokens). Escríbeme por aquí cuando quieras reservar tu máquina Reformer o tapete de Hot Pilates y te enviaré tu código QR de acceso.`,
         timestamp: "Ahora",
         suggestedSpots: [
           "Ver lugares Reformer 18:30",
@@ -209,10 +231,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "create_session") {
-      const { title, roomId, instructor, date, startTime, level } = body;
+      const {
+        title,
+        roomId,
+        instructor,
+        date,
+        startTime,
+        level,
+        isSpecialClass,
+        specialBadge,
+      } = body;
       const state = readDB();
-      const room =
-        state.rooms.find((r) => r.id === roomId) || state.rooms[0];
+      const room = state.rooms.find((r) => r.id === roomId) || state.rooms[0];
       const parts = String(instructor || "Coach Stiliza").split(" ");
       const initials = parts
         .map((p) => p[0])
@@ -224,8 +254,10 @@ export async function POST(req: NextRequest) {
         id: `ses-${Date.now()}`,
         title: String(title || "Reformer Signature Session"),
         discipline: room.discipline,
-        roomId: room.id,
+        branchId: room.branchId,
         branchName: room.branchName,
+        brand: room.brand,
+        roomId: room.id,
         roomName: room.name,
         instructor: String(instructor || "Coach Daniela R."),
         instructorAvatar: initials || "CS",
@@ -234,11 +266,139 @@ export async function POST(req: NextRequest) {
         durationMinutes: 50,
         level: level || "Todos los niveles",
         intensity: room.discipline === "hot_pilates" ? "Intensa 🔥" : "Alta",
+        isSpecialClass: Boolean(isSpecialClass),
+        specialBadge: specialBadge || undefined,
       };
 
       state.sessions.push(newSession);
       writeDB(state);
       return NextResponse.json({ success: true, session: newSession, state });
+    }
+
+    if (action === "update_session") {
+      const {
+        sessionId,
+        title,
+        instructor,
+        startTime,
+        date,
+        roomId,
+        isSpecialClass,
+        specialBadge,
+      } = body;
+      const state = readDB();
+      const ses = state.sessions.find((s) => s.id === sessionId);
+      if (ses) {
+        if (title !== undefined) ses.title = String(title);
+        if (instructor !== undefined) ses.instructor = String(instructor);
+        if (startTime !== undefined) ses.startTime = String(startTime);
+        if (date !== undefined) ses.date = String(date);
+        if (isSpecialClass !== undefined)
+          ses.isSpecialClass = Boolean(isSpecialClass);
+        if (specialBadge !== undefined) ses.specialBadge = specialBadge;
+
+        if (roomId && roomId !== ses.roomId) {
+          const room = state.rooms.find((r) => r.id === roomId);
+          if (room) {
+            ses.roomId = room.id;
+            ses.roomName = room.name;
+            ses.branchId = room.branchId;
+            ses.branchName = room.branchName;
+            ses.brand = room.brand;
+            ses.discipline = room.discipline;
+          }
+        }
+        writeDB(state);
+      }
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "delete_session") {
+      const { sessionId } = body;
+      const state = readDB();
+      state.sessions = state.sessions.filter((s) => s.id !== sessionId);
+      writeDB(state);
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "create_promo_event") {
+      const {
+        title,
+        description,
+        type,
+        dateLabel,
+        highlightBadge,
+        priceText,
+        branchId,
+      } = body;
+      const state = readDB();
+      const branch = state.branches.find((b) => b.id === branchId);
+      const newEv: StudioPromoEvent = {
+        id: `ev-${Date.now()}`,
+        title: String(title || "Evento Especial Stiliza & Devotion"),
+        description: String(description || ""),
+        type: type || "evento",
+        dateLabel: String(dateLabel || "Próximamente"),
+        highlightBadge: String(highlightBadge || "✨ Nuevo"),
+        priceText: String(priceText || "1 Token"),
+        branchId: branch ? branch.id : "all",
+        branchName: branch
+          ? branch.name
+          : "Todas las sucursales Stiliza & Devotion",
+      };
+      state.promosAndEvents.unshift(newEv);
+      writeDB(state);
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "delete_promo_event") {
+      const { eventId } = body;
+      const state = readDB();
+      state.promosAndEvents = state.promosAndEvents.filter(
+        (e) => e.id !== eventId
+      );
+      writeDB(state);
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "create_coach") {
+      const { name, specialty, vibeBadge } = body;
+      const state = readDB();
+      const parts = String(name || "Coach Nueva")
+        .trim()
+        .split(" ");
+      const avatar = parts
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      const newCoach: Coach = {
+        id: `coach-${Date.now()}`,
+        name: String(name).trim(),
+        avatar: avatar || "CN",
+        specialty: specialty || "ambas",
+        occupancyRate: 92,
+        vibeBadge: String(vibeBadge || "✨ Especialista Certificada"),
+      };
+      state.coaches.push(newCoach);
+      writeDB(state);
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "create_branch") {
+      const { brand, name, address, kiosksCount } = body;
+      const state = readDB();
+      const newBr: Branch = {
+        id: `br-${Date.now()}`,
+        brand: brand === "Devotion" ? "Devotion" : "Stiliza",
+        name: String(name).trim(),
+        address: String(address || "Nueva Ubicación"),
+        kiosksCount: Number(kiosksCount) || 1,
+        monthlyRevenueMXN: 185000,
+      };
+      state.branches.push(newBr);
+      writeDB(state);
+      return NextResponse.json({ success: true, state });
     }
 
     if (action === "toggle_spot_maintenance") {
