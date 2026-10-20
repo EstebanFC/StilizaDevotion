@@ -3,19 +3,30 @@ import { Booking, CRMDatabaseState, Client } from "@/types/crm";
 import { readDB } from "@/lib/db";
 
 /**
- * Normaliza números de México para Meta WhatsApp Cloud API:
- * Meta envía en webhooks "5219878710684", pero en la lista de números de prueba
- * espera "529878710684" (sin el "1" después de 52).
+ * Devuelve las variantes posibles de un número (especialmente útil en México donde
+ * Meta a veces registra 521XXXXXXXXXX y otras veces 52XXXXXXXXXX).
  */
-export function normalizeWhatsAppRecipient(rawPhone: string): string {
+export function getPhoneCandidates(rawPhone: string): string[] {
   const digits = rawPhone.replace(/\D/g, "");
+  const candidates = new Set<string>();
+
+  if (digits) candidates.add(digits);
+
+  // Si empieza con 521 y tiene 13 dígitos -> probar también sin el 1 (52 + 10 dígitos)
   if (digits.startsWith("521") && digits.length === 13) {
-    return "52" + digits.slice(3);
+    candidates.add("52" + digits.slice(3));
   }
+  // Si empieza con 52 y tiene 12 dígitos -> probar también con el 1 (521 + 10 dígitos)
+  if (digits.startsWith("52") && !digits.startsWith("521") && digits.length === 12) {
+    candidates.add("521" + digits.slice(2));
+  }
+  // Si tiene 10 dígitos -> probar 52 y 521
   if (digits.length === 10) {
-    return "52" + digits;
+    candidates.add("52" + digits);
+    candidates.add("521" + digits);
   }
-  return digits;
+
+  return Array.from(candidates);
 }
 
 /**
@@ -80,6 +91,7 @@ export async function sendRealWhatsAppMessage(params: {
   const qrImageUrl = params.booking
     ? `${publicBaseUrl}/api/qr/${encodeURIComponent(params.booking.qrToken)}`
     : undefined;
+
   const runtimeToken = (
     state.aiSettings as unknown as { metaAccessToken?: string }
   )?.metaAccessToken;
@@ -87,17 +99,32 @@ export async function sendRealWhatsAppMessage(params: {
     state.aiSettings as unknown as { metaPhoneNumberId?: string }
   )?.metaPhoneNumberId;
 
-  const metaToken = runtimeToken || process.env.WHATSAPP_ACCESS_TOKEN;
-  const metaPhoneId =
+  const metaToken = (
+    runtimeToken ||
+    process.env.WHATSAPP_ACCESS_TOKEN ||
+    ""
+  ).trim();
+  const metaPhoneId = (
     runtimePhoneId ||
     process.env.WHATSAPP_PHONE_NUMBER_ID ||
-    "1414880558369692";
+    "1414880558369692"
+  ).trim();
 
-  const recipient = normalizeWhatsAppRecipient(params.toPhone);
+  if (!metaToken) {
+    return {
+      sent: false,
+      provider: "Meta WhatsApp Cloud API",
+      error:
+        "Falta configurar WHATSAPP_ACCESS_TOKEN en las variables de entorno de Vercel.",
+    };
+  }
 
-  if (metaToken && metaPhoneId) {
+  const candidates = getPhoneCandidates(params.toPhone);
+  let lastErrorData: unknown = null;
+  let successfulRecipient: string | null = null;
+
+  for (const recipient of candidates) {
     try {
-      // 1. Send text message
       const textRes = await fetch(
         `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
         {
@@ -117,136 +144,86 @@ export async function sendRealWhatsAppMessage(params: {
       );
 
       const textData = await textRes.json();
-      if (!textRes.ok) {
-        return {
-          sent: false,
-          provider: "Meta WhatsApp Cloud API",
-          error:
-            textData?.error?.message ||
-            "Error enviando mensaje en Meta Cloud API",
-          details: textData,
-        };
+      if (textRes.ok) {
+        successfulRecipient = recipient;
+        lastErrorData = textData;
+        break;
+      } else {
+        lastErrorData = textData;
       }
-
-      // 2. If there is a booking, upload the QR PNG directly to Meta & send the QR image!
-      if (params.booking) {
-        const mediaId = await uploadQRImageToMeta({
-          phoneNumberId: metaPhoneId,
-          accessToken: metaToken,
-          qrToken: params.booking.qrToken,
-        });
-
-        if (mediaId) {
-          await fetch(
-            `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${metaToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                recipient_type: "individual",
-                to: recipient,
-                type: "image",
-                image: {
-                  id: mediaId,
-                  caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
-                },
-              }),
-            }
-          );
-        } else if (qrImageUrl) {
-          await fetch(
-            `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${metaToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                recipient_type: "individual",
-                to: recipient,
-                type: "image",
-                image: {
-                  link: qrImageUrl,
-                  caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
-                },
-              }),
-            }
-          );
-        }
-      }
-
-      return {
-        sent: true,
-        provider: "Meta WhatsApp Cloud API",
-        details: textData,
-      };
     } catch (err) {
-      return {
-        sent: false,
-        provider: "Meta WhatsApp Cloud API",
-        error: err instanceof Error ? err.message : "Error Meta API",
-      };
+      lastErrorData = err instanceof Error ? err.message : "Fetch error";
     }
   }
 
-  return { sent: false, provider: "local_simulator" };
-}
+  if (!successfulRecipient) {
+    const errMsg =
+      (lastErrorData as { error?: { message?: string } })?.error?.message ||
+      "Error enviando mensaje en Meta Cloud API";
+    return {
+      sent: false,
+      provider: "Meta WhatsApp Cloud API",
+      error: errMsg,
+      details: lastErrorData,
+    };
+  }
 
-export async function generateLLMConciergeResponse(params: {
-  state: CRMDatabaseState;
-  client: Client;
-  userText: string;
-}): Promise<string | null> {
-  const { state, client, userText } = params;
+  // Si hay reserva adjunta, enviar también la imagen del código QR al mismo destinatario exitoso
+  if (params.booking) {
+    const mediaId = await uploadQRImageToMeta({
+      phoneNumberId: metaPhoneId,
+      accessToken: metaToken,
+      qrToken: params.booking.qrToken,
+    });
 
-  const scheduleSummary = state.sessions
-    .map((s) => {
-      const room = state.rooms.find((r) => r.id === s.roomId);
-      const occupied = new Set(
-        state.bookings
-          .filter((b) => b.sessionId === s.id && b.status !== "cancelada")
-          .map((b) => b.spotId)
-      );
-      const freeSpots =
-        room?.spots
-          .filter((sp) => !occupied.has(sp.id) && sp.status !== "maintenance")
-          .map((sp) => sp.id)
-          .join(", ") || "";
-      return `- ID:${s.id} | ${s.title} (${s.discipline}) | ${s.date} ${s.startTime} hrs | Coach: ${s.instructor} | Lugares libres: [${freeSpots}]`;
-    })
-    .join("\n");
-
-  const systemPrompt = `Eres "Stiliza Concierge IA", la recepcionista virtual por WhatsApp de los estudios de lujo "Stiliza Devotion" (Pilates Reformer y Hot Pilates 38°C).
-Estás hablando con la alumna: ${client.name} (Créditos disponibles: ${client.creditsRemaining}, Lugar favorito: ${client.preferredSpot || "R-03"}).
-Horarios y máquinas/tapetes libres en tiempo real:
-${scheduleSummary}`;
-
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    if (mediaId) {
+      await fetch(
+        `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bearer ${metaToken}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: "user", parts: [{ text: userText }] }],
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: successfulRecipient,
+            type: "image",
+            image: {
+              id: mediaId,
+              caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
+            },
           }),
         }
       );
-      const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) return text;
-    } catch {
-      // Fallback
+    } else if (qrImageUrl) {
+      await fetch(
+        `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${metaToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: successfulRecipient,
+            type: "image",
+            image: {
+              link: qrImageUrl,
+              caption: `🎟️ *PASE QR STILIZA DEVOTION*\n• Clase: ${params.booking.sessionTitle} (${params.booking.startTime} hrs)\n• Lugar asignado: *${params.booking.spotId}* (${params.booking.spotLabel})\n• Código: ${params.booking.qrToken}\n\n_Escanea este código QR en la tablet al llegar al estudio._`,
+            },
+          }),
+        }
+      );
     }
   }
 
-  return null;
+  return {
+    sent: true,
+    provider: "Meta WhatsApp Cloud API",
+    details: lastErrorData,
+  };
 }
