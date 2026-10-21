@@ -426,6 +426,22 @@ export default function StilizaDevotionApp() {
               const data = await res.json();
               if (data.state) setDb(data.state);
             }}
+            onSyncExternalBooking={async (payload) => {
+              const res = await fetch("/api/integrations/aggregator", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                error: data.error,
+                spotAssigned: data?.booking?.spotId,
+                remainingSlots:
+                  data?.channelSyncReport?.remainingSlotsPublishedToAllApps,
+              };
+            }}
           />
         )}
 

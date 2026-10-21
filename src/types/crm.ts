@@ -1,10 +1,30 @@
 export type Discipline = "reformer" | "hot_pilates";
 export type StudioBrand = "Stiliza" | "Devotion";
+export type ExternalAggregator = "wellhub" | "totalpass" | "fitpass" | "nessty";
+
+export type BookingSource =
+  | "whatsapp_bot"
+  | "web_portal"
+  | "crm_admin"
+  | "kiosk_tablet"
+  | ExternalAggregator;
+
+export interface AggregatorConnection {
+  id: ExternalAggregator;
+  name: "Wellhub" | "TotalPass" | "FitPass" | "Nessty";
+  connectionType: "api_webhook" | "inbound_email_bridge";
+  connected: boolean;
+  autoBlockSpots: boolean;
+  maxSpotsPerSession: number; // Cupo máximo permitido por clase para esta app
+  syncedBookingsToday: number;
+  lastSyncAt: string;
+  colorBadge: string;
+}
 
 export interface Branch {
   id: string;
   brand: StudioBrand;
-  name: string; // e.g. "Stiliza Polanco", "Devotion Roma Norte", "Stiliza Lomas", "Devotion Condesa"
+  name: string;
   address: string;
   kiosksCount: number;
   monthlyRevenueMXN: number;
@@ -15,8 +35,8 @@ export interface Coach {
   name: string;
   avatar: string;
   specialty: Discipline | "ambas";
-  occupancyRate: number; // e.g. 96%
-  vibeBadge: string; // e.g. "🔥 Queen del Burn", "✨ Técnica Impecable"
+  occupancyRate: number;
+  vibeBadge: string;
 }
 
 export interface StudioPromoEvent {
@@ -25,16 +45,16 @@ export interface StudioPromoEvent {
   description: string;
   type: "evento" | "promo" | "clase_especial";
   dateLabel: string;
-  highlightBadge: string; // e.g. "2x1 Tokens", "Cupo Limitado", "DJ Live Set"
+  highlightBadge: string;
   priceText: string;
   branchId: string | "all";
   branchName: string;
 }
 
 export interface SpotConfig {
-  id: string; // e.g. "R-01" or "M-01"
-  label: string; // e.g. "Reformer 01" or "Mat 01"
-  shortLabel: string; // e.g. "R1" or "M1"
+  id: string;
+  label: string;
+  shortLabel: string;
   row: number;
   col: number;
   zone:
@@ -100,8 +120,8 @@ export interface ClassSession {
   roomName: string;
   instructor: string;
   instructorAvatar: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // "07:00", "08:00", etc.
+  date: string;
+  startTime: string;
   durationMinutes: number;
   level: "Todos los niveles" | "Intermedio" | "Avanzado" | "Principiantes";
   intensity: "Media" | "Alta" | "Intensa 🔥";
@@ -127,7 +147,8 @@ export interface Booking {
   spotId: string;
   spotLabel: string;
   status: "confirmada" | "asistio" | "cancelada";
-  bookedVia: "whatsapp_bot" | "web_portal" | "crm_admin" | "kiosk_tablet";
+  bookedVia: BookingSource;
+  externalReservationCode?: string; // e.g. "WH-99812", "TP-44120", "FP-7721", "NS-1190"
   whatsappSent: boolean;
   createdAt: string;
   checkedInAt?: string;
@@ -156,6 +177,7 @@ export interface CRMDatabaseState {
   branches: Branch[];
   coaches: Coach[];
   promosAndEvents: StudioPromoEvent[];
+  aggregators: AggregatorConnection[];
   rooms: StudioRoom[];
   packages: ClassPackage[];
   clients: Client[];

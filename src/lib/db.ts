@@ -2,7 +2,9 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  AggregatorConnection,
   Booking,
+  BookingSource,
   Branch,
   ChatMessage,
   ClassPackage,
@@ -10,6 +12,7 @@ import {
   Client,
   Coach,
   CRMDatabaseState,
+  ExternalAggregator,
   KioskCheckInResult,
   SpotConfig,
   StudioPromoEvent,
@@ -19,7 +22,7 @@ import {
 const DATA_DIR = process.env.VERCEL
   ? path.join(os.tmpdir(), "stiliza-data")
   : path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "crm-store-v2.json");
+const DB_FILE = path.join(DATA_DIR, "crm-store-v3.json");
 
 function buildReformerSpots(
   count: number,
@@ -696,10 +699,58 @@ export function getInitialSeedData(): CRMDatabaseState {
     },
   ];
 
+  const aggregators: AggregatorConnection[] = [
+    {
+      id: "wellhub",
+      name: "Wellhub",
+      connectionType: "api_webhook",
+      connected: true,
+      autoBlockSpots: true,
+      maxSpotsPerSession: 5,
+      syncedBookingsToday: 4,
+      lastSyncAt: "Hace 2 min",
+      colorBadge: "bg-rose-500/20 text-rose-300 border-rose-400/30",
+    },
+    {
+      id: "totalpass",
+      name: "TotalPass",
+      connectionType: "api_webhook",
+      connected: true,
+      autoBlockSpots: true,
+      maxSpotsPerSession: 4,
+      syncedBookingsToday: 3,
+      lastSyncAt: "Hace 5 min",
+      colorBadge: "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
+    },
+    {
+      id: "fitpass",
+      name: "FitPass",
+      connectionType: "inbound_email_bridge",
+      connected: true,
+      autoBlockSpots: true,
+      maxSpotsPerSession: 4,
+      syncedBookingsToday: 5,
+      lastSyncAt: "Hace 1 min",
+      colorBadge: "bg-sky-500/20 text-sky-300 border-sky-400/30",
+    },
+    {
+      id: "nessty",
+      name: "Nessty",
+      connectionType: "inbound_email_bridge",
+      connected: true,
+      autoBlockSpots: true,
+      maxSpotsPerSession: 4,
+      syncedBookingsToday: 2,
+      lastSyncAt: "Hace 8 min",
+      colorBadge: "bg-purple-500/20 text-purple-300 border-purple-400/30",
+    },
+  ];
+
   return {
     branches,
     coaches,
     promosAndEvents,
+    aggregators,
     rooms,
     packages,
     clients,
@@ -758,7 +809,8 @@ export function createBookingTransaction(params: {
   clientId: string;
   sessionId: string;
   spotId: string;
-  bookedVia: "whatsapp_bot" | "web_portal" | "crm_admin" | "kiosk_tablet";
+  bookedVia: BookingSource;
+  externalReservationCode?: string;
 }): {
   success: boolean;
   error?: string;
@@ -974,6 +1026,186 @@ export function processKioskQRScan(
       message: `¡Bienvenida ${booking.clientName}! Pasa al ${booking.roomName} · Tu lugar asignado es ${booking.spotLabel} (${booking.spotId}).`,
       booking,
       client,
+    },
+    state,
+  };
+}
+
+/**
+ * Channel Manager / Sincronizador Bidireccional con Wellhub, TotalPass, FitPass y Nessty.
+ * Cuando entra una reserva desde cualquiera de las 4 plataformas externas:
+ * 1) Asigna automáticamente la siguiente máquina Reformer o tapete Hot Pilates libre (o el solicitado).
+ * 2) Bloquea ese lugar en el mapa del salón.
+ * 3) Recalcula el cupo restante de la clase y devuelve el inventario actualizado para
+ *    bloquear/actualizar disponibilidad en las 4 plataformas y evitar sobrecupo.
+ */
+export function syncExternalAggregatorBooking(params: {
+  platform: ExternalAggregator;
+  clientName: string;
+  clientPhone?: string;
+  sessionId: string;
+  preferredSpotId?: string;
+  externalReservationCode?: string;
+}): {
+  success: boolean;
+  error?: string;
+  booking?: Booking;
+  channelSyncReport?: {
+    totalCapacity: number;
+    totalOccupied: number;
+    remainingSlotsPublishedToAllApps: number;
+    platformsNotified: string[];
+  };
+  state: CRMDatabaseState;
+} {
+  const state = readDB();
+  const session =
+    state.sessions.find((s) => s.id === params.sessionId) || state.sessions[0];
+  if (!session) {
+    return { success: false, error: "Clase no encontrada.", state };
+  }
+
+  const room = state.rooms.find((r) => r.id === session.roomId);
+  if (!room) {
+    return { success: false, error: "Salón no encontrado.", state };
+  }
+
+  const occupiedSpotIds = new Set(
+    state.bookings
+      .filter((b) => b.sessionId === session.id && b.status !== "cancelada")
+      .map((b) => b.spotId)
+  );
+
+  const freeSpots = room.spots.filter(
+    (sp) => !occupiedSpotIds.has(sp.id) && sp.status !== "maintenance"
+  );
+
+  if (freeSpots.length === 0) {
+    return {
+      success: false,
+      error: `Clase llena en ${room.name}. Los lugares ya están bloqueados en Wellhub, TotalPass, FitPass y Nessty.`,
+      state,
+    };
+  }
+
+  const chosenSpot =
+    (params.preferredSpotId &&
+      freeSpots.find(
+        (s) => s.id.toUpperCase() === params.preferredSpotId!.toUpperCase()
+      )) ||
+    freeSpots[0];
+
+  const platformUpper = params.platform.toUpperCase();
+  const prefixCode =
+    params.platform === "wellhub"
+      ? "WH"
+      : params.platform === "totalpass"
+      ? "TP"
+      : params.platform === "fitpass"
+      ? "FP"
+      : "NS";
+
+  const extCode =
+    params.externalReservationCode ||
+    `${prefixCode}-${Math.floor(10000 + Math.random() * 90000)}`;
+
+  // Buscar o crear perfil de la alumna que viene de la app externa
+  let client = state.clients.find(
+    (c) => c.name.toLowerCase() === params.clientName.trim().toLowerCase()
+  );
+
+  if (!client) {
+    const parts = params.clientName.trim().split(" ");
+    const initials =
+      parts.length > 1
+        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+        : parts[0].slice(0, 2).toUpperCase();
+
+    client = {
+      id: `cli-${params.platform}-${Date.now()}`,
+      name: params.clientName.trim(),
+      phone: params.clientPhone || "+52 55 8899 0011",
+      email: `${params.platform}@alumna.mx`,
+      avatarInitials: initials,
+      activePackageName: `Membresía Externa (${platformUpper})`,
+      creditsRemaining: 1,
+      creditsTotal: 1,
+      packageExpiresAt: "2026-12-31",
+      status: "activo",
+      totalAttended: 1,
+      noShowsCount: 0,
+      preferredSpot: chosenSpot.id,
+      homeBranchName: session.branchName,
+      joinedAt: new Date().toISOString().split("T")[0],
+    };
+    state.clients.unshift(client);
+  } else if (client.creditsRemaining <= 0) {
+    client.creditsRemaining = 1;
+  }
+
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const cleanSpotCode = chosenSpot.id.replace("-", "");
+  const qrToken = `SD-${prefixCode}-${cleanSpotCode}-${randomSuffix}`;
+
+  const newBooking: Booking = {
+    id: `bk-${Date.now()}`,
+    qrToken,
+    clientId: client.id,
+    clientName: client.name,
+    clientPhone: client.phone,
+    sessionId: session.id,
+    sessionTitle: session.title,
+    discipline: session.discipline,
+    branchId: session.branchId,
+    branchName: session.branchName,
+    roomName: session.roomName,
+    instructor: session.instructor,
+    date: session.date,
+    startTime: session.startTime,
+    spotId: chosenSpot.id,
+    spotLabel: chosenSpot.label,
+    status: "confirmada",
+    bookedVia: params.platform,
+    externalReservationCode: extCode,
+    whatsappSent: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  state.bookings.unshift(newBooking);
+
+  // Actualizar contador del agregador
+  const agg = state.aggregators?.find((a) => a.id === params.platform);
+  if (agg) {
+    agg.syncedBookingsToday += 1;
+    agg.lastSyncAt = "Justo ahora";
+  }
+
+  const nowTime = new Date().toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  state.messages.push({
+    id: `msg-agg-${Date.now()}`,
+    clientId: client.id,
+    sender: "bot",
+    text: `📲 **[Sincronización ${platformUpper} #${extCode}]** ¡Hola ${client.name.split(" ")[0]}! Recibimos tu reserva desde **${platformUpper}** para **${session.title}** (${session.startTime} hrs · ${session.branchName}).\n\nTe asignamos y bloqueamos automáticamente **${chosenSpot.label} (${chosenSpot.id})**. Escanea este código QR en el Kiosco al llegar al estudio:`,
+    timestamp: nowTime,
+    bookingAttachment: newBooking,
+  });
+
+  writeDB(state);
+
+  const newTotalOccupied = occupiedSpotIds.size + 1;
+  const remainingSlots = Math.max(0, room.spots.length - newTotalOccupied);
+
+  return {
+    success: true,
+    booking: newBooking,
+    channelSyncReport: {
+      totalCapacity: room.spots.length,
+      totalOccupied: newTotalOccupied,
+      remainingSlotsPublishedToAllApps: remainingSlots,
+      platformsNotified: ["Wellhub", "TotalPass", "FitPass", "Nessty"],
     },
     state,
   };

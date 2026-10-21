@@ -119,6 +119,24 @@ export function StudioSpotMap({
                   En clase
                 </span>
               )}
+              {isOccupied &&
+                booking &&
+                ["wellhub", "totalpass", "fitpass", "nessty"].includes(
+                  booking.bookedVia
+                ) && (
+                  <span
+                    title={`Reservado desde ${booking.bookedVia.toUpperCase()}`}
+                    className="inline-flex items-center rounded-full bg-stone-900 text-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold uppercase"
+                  >
+                    {booking.bookedVia === "wellhub"
+                      ? "WH"
+                      : booking.bookedVia === "totalpass"
+                      ? "TP"
+                      : booking.bookedVia === "fitpass"
+                      ? "FP"
+                      : "NS"}
+                  </span>
+                )}
             </div>
           </div>
 

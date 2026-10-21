@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { ClassSession, CRMDatabaseState, StudioBrand } from "@/types/crm";
+import {
+  ClassSession,
+  CRMDatabaseState,
+  ExternalAggregator,
+  StudioBrand,
+} from "@/types/crm";
 import { StudioSpotMap } from "@/components/StudioSpotMap";
+import { ChannelManagerPanel } from "@/components/ChannelManagerPanel";
 import {
   AlertTriangle,
   Award,
@@ -84,6 +90,16 @@ interface AdminCRMDashboardProps {
   onScanInKiosk: (qrToken: string) => void;
   onOpenClientChat: (clientId: string) => void;
   onResetDemo: () => Promise<void>;
+  onSyncExternalBooking: (params: {
+    platform: ExternalAggregator;
+    clientName: string;
+    sessionId: string;
+  }) => Promise<{
+    success: boolean;
+    error?: string;
+    spotAssigned?: string;
+    remainingSlots?: number;
+  }>;
 }
 
 export function AdminCRMDashboard({
@@ -102,6 +118,7 @@ export function AdminCRMDashboard({
   onScanInKiosk,
   onOpenClientChat,
   onResetDemo,
+  onSyncExternalBooking,
 }: AdminCRMDashboardProps) {
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
@@ -326,7 +343,16 @@ export function AdminCRMDashboard({
       </div>
 
       {/* =====================================================================
-          2. "COSAS CHUSCAS" / RADAR DE INTELIGENCIA PARA ADMINISTRADORES
+          2. CHANNEL MANAGER: WELLHUB, TOTALPASS, FITPASS & NESSTY
+         ===================================================================== */}
+      <ChannelManagerPanel
+        db={db}
+        selectedSessionId={activeSession?.id || ""}
+        onSyncExternalBooking={onSyncExternalBooking}
+      />
+
+      {/* =====================================================================
+          3. "COSAS CHUSCAS" / RADAR DE INTELIGENCIA PARA ADMINISTRADORES
          ===================================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: La Máquina / Tapete Más Peleado */}
@@ -1115,6 +1141,21 @@ export function AdminCRMDashboard({
                       <p className="font-bold text-xs text-stone-900 truncate">
                         {bk.clientName}
                       </p>
+                      <span className="rounded-md bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold uppercase text-stone-600">
+                        {bk.bookedVia === "whatsapp_bot"
+                          ? "🤖 Bot IA"
+                          : bk.bookedVia === "kiosk_tablet"
+                          ? "📱 Kiosco"
+                          : bk.bookedVia === "wellhub"
+                          ? "🔴 Wellhub"
+                          : bk.bookedVia === "totalpass"
+                          ? "🟢 TotalPass"
+                          : bk.bookedVia === "fitpass"
+                          ? "🔵 FitPass"
+                          : bk.bookedVia === "nessty"
+                          ? "🟣 Nessty"
+                          : "🌐 Web"}
+                      </span>
                     </div>
                     <p className="text-xs text-stone-600 mt-1 truncate">
                       {bk.branchName} · {bk.sessionTitle} ({bk.startTime})
