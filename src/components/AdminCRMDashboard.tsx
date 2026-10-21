@@ -263,7 +263,7 @@ export function AdminCRMDashboard({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {db.branches.map((br) => {
             const isSelected = branchFilter === br.id;
             const brSessions = db.sessions.filter((s) => s.branchId === br.id);
@@ -276,7 +276,9 @@ export function AdminCRMDashboard({
               0
             );
             const totalCapacity =
-              Math.max(1, brSessions.length) * (totalSpotsPerClass || 12);
+              totalSpotsPerClass === 0
+                ? 0
+                : Math.max(1, brSessions.length) * totalSpotsPerClass;
 
             return (
               <button
@@ -364,12 +366,11 @@ export function AdminCRMDashboard({
             <Crown className="h-5 w-5 text-amber-400" />
           </div>
           <p className="text-xl font-extrabold text-white mt-2">
-            Reformer R-03 & Mat M-06
+            Lugares #3 y #4 (Junto a Coach)
           </p>
           <p className="text-xs text-stone-300 mt-1">
-            Se agotan en promedio <strong>4 horas antes</strong> de cada clase.
-            En cambio, <strong>R-12</strong> (esquina posterior) es la&nbsp;
-            &quot;máquina tímida&quot;.
+            En Devotion Zibatá, Juriquilla y Campanario los lugares al centro
+            junto al <strong>COACH</strong> se agotan primero.
           </p>
         </div>
 

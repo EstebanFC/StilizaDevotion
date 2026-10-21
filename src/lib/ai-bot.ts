@@ -1,8 +1,4 @@
-import {
-  createBookingTransaction,
-  readDB,
-  writeDB,
-} from "@/lib/db";
+import { createBookingTransaction, readDB, writeDB } from "@/lib/db";
 import { ChatMessage, CRMDatabaseState } from "@/types/crm";
 
 export function processAIChatTurn(params: {
@@ -23,7 +19,6 @@ export function processAIChatTurn(params: {
     minute: "2-digit",
   });
 
-  // 1. Append client's message
   const clientMsg: ChatMessage = {
     id: `msg-${Date.now()}-usr`,
     clientId: client.id,
@@ -37,43 +32,57 @@ export function processAIChatTurn(params: {
   const lower = params.userText.toLowerCase().trim();
   const firstName = client.name.split(" ")[0];
 
-  // Check if message contains a spot code like R-01..R-12, RB-01..RB-08, M-01..M-16 or R01 / M01
-  const spotMatch = params.userText.match(/\b(RB|R|M)-?(\d{1,2})\b/i);
+  // Detect spot number (1..12) when user says "lugar 3", "máquina 4", "tapete 6", "#2", "Reservar lugar 3", etc.
+  const spotMatch =
+    params.userText.match(
+      /(?:lugar|m[aá]quina|tapete|reformer|mat|#)\s*(\d{1,2})\b/i
+    ) || params.userText.match(/\b(?:RB|R|M)-?(\d{1,2})\b/i);
+
   const wantsToBook =
     lower.includes("reservar") ||
     lower.includes("agendar") ||
     lower.includes("agenda") ||
-    lower.includes("quiero la") ||
-    lower.includes("quiero el") ||
+    lower.includes("quiero") ||
     lower.includes("aparta") ||
+    lower.includes("lugar") ||
     Boolean(spotMatch);
 
+  // Detect branch mentioned
+  let matchedSession = state.sessions.find((s) => {
+    const brLower = s.branchName.toLowerCase();
+    if (lower.includes("zibat") && brLower.includes("zibat")) return true;
+    if (lower.includes("san isidro") && brLower.includes("san isidro"))
+      return true;
+    if (
+      lower.includes("stiliza juriquilla") &&
+      brLower.includes("stiliza juriquilla")
+    )
+      return true;
+    if (
+      lower.includes("devotion juriquilla") &&
+      brLower.includes("devotion juriquilla")
+    )
+      return true;
+    if (
+      lower.includes("devotion campanario") &&
+      brLower.includes("devotion campanario")
+    )
+      return true;
+    if (lower.includes("juriquilla") && brLower.includes("juriquilla"))
+      return true;
+    if (lower.includes("campanario") && brLower.includes("devotion campanario"))
+      return true;
+    return false;
+  });
+
   if (spotMatch && wantsToBook) {
-    const prefix = spotMatch[1].toUpperCase();
-    const num = spotMatch[2].padStart(2, "0");
-    const targetSpotId = `${prefix}-${num}`;
-
-    // Determine which session matches the discipline & requested time
-    const isHotMat = prefix === "M";
-    const targetDiscipline = isHotMat ? "hot_pilates" : "reformer";
-
-    // Check if user mentioned a specific time like 18:30, 19:30, 07:00, 08:30, 08:00, 09:00
-    let matchedSession = state.sessions.find(
-      (s) =>
-        s.discipline === targetDiscipline &&
-        (lower.includes(s.startTime) ||
-          (s.startTime === "18:30" && (lower.includes("6:30") || lower.includes("tarde"))) ||
-          (s.startTime === "19:30" && (lower.includes("7:30") || lower.includes("noche"))))
-    );
+    const targetSpotId = String(Number(spotMatch[1]));
 
     if (!matchedSession) {
-      // Pick the primary upcoming session for that discipline
       matchedSession =
         state.sessions.find(
-          (s) =>
-            s.discipline === targetDiscipline &&
-            (s.startTime === "18:30" || s.startTime === "19:30")
-        ) || state.sessions.find((s) => s.discipline === targetDiscipline);
+          (s) => s.branchName === client.homeBranchName && s.roomId !== "room-stiliza-campanario"
+        ) || state.sessions[0];
     }
 
     if (matchedSession) {
@@ -91,13 +100,13 @@ export function processAIChatTurn(params: {
           replyMessages: latestMsg ? [latestMsg] : [],
         };
       } else {
-        // Spot was taken or client out of credits — suggest free spots in that session!
         state = tx.state;
         const room = state.rooms.find((r) => r.id === matchedSession!.roomId);
         const occupied = new Set(
           state.bookings
             .filter(
-              (b) => b.sessionId === matchedSession!.id && b.status !== "cancelada"
+              (b) =>
+                b.sessionId === matchedSession!.id && b.status !== "cancelada"
             )
             .map((b) => b.spotId)
         );
@@ -105,7 +114,9 @@ export function processAIChatTurn(params: {
           room?.spots
             .filter((s) => !occupied.has(s.id) && s.status !== "maintenance")
             .slice(0, 5)
-            .map((s) => `Reservar ${s.id}`) || [];
+            .map(
+              (s) => `Reservar lugar ${s.id} en ${matchedSession!.branchName}`
+            ) || [];
 
         const errReply: ChatMessage = {
           id: `msg-${Date.now()}-bot`,
@@ -113,8 +124,8 @@ export function processAIChatTurn(params: {
           sender: "bot",
           text: `⚠️ ${tx.error}\n\n${
             freeSpots.length > 0
-              ? `Para **${matchedSession.title}** (${matchedSession.startTime} hrs) tengo disponibles estos lugares. Toca uno para agendarlo al instante:`
-              : `¿Te gustaría que te recargue un paquete de clases?`
+              ? `En **${matchedSession.branchName}** (${matchedSession.startTime} hrs) están libres estos lugares. Toca uno para reservarlo:`
+              : `¿Deseas consultar otra sucursal?`
           }`,
           timestamp: nowTime,
           suggestedSpots: freeSpots,
@@ -126,8 +137,13 @@ export function processAIChatTurn(params: {
     }
   }
 
-  // 2. Ask for QR / Existing pass
-  if (lower.includes("qr") || lower.includes("código") || lower.includes("codigo") || lower.includes("pase")) {
+  // Ask for QR / Existing pass
+  if (
+    lower.includes("qr") ||
+    lower.includes("código") ||
+    lower.includes("codigo") ||
+    lower.includes("pase")
+  ) {
     const activeBooking = state.bookings.find(
       (b) => b.clientId === client.id && b.status === "confirmada"
     );
@@ -136,7 +152,7 @@ export function processAIChatTurn(params: {
           id: `msg-${Date.now()}-bot`,
           clientId: client.id,
           sender: "bot",
-          text: `¡Claro, ${firstName}! Aquí tienes nuevamente tu código QR activo para **${activeBooking.sessionTitle}** (${activeBooking.startTime} hrs) en **${activeBooking.spotLabel}**. Solo acércalo al lector de la tablet al llegar al estudio:`,
+          text: `¡Claro, ${firstName}! Aquí tienes tu código QR activo para **${activeBooking.sessionTitle}** (${activeBooking.startTime} hrs · ${activeBooking.branchName}) en el **Lugar #${activeBooking.spotId}**. Escanéalo en el Kiosco al llegar:`,
           timestamp: nowTime,
           bookingAttachment: activeBooking,
         }
@@ -144,11 +160,12 @@ export function processAIChatTurn(params: {
           id: `msg-${Date.now()}-bot`,
           clientId: client.id,
           sender: "bot",
-          text: `Hola ${firstName}, por el momento no tienes una reserva pendiente de check-in. ¿Quieres agendar Pilates Reformer o Hot Pilates hoy?`,
+          text: `Hola ${firstName}, por el momento no tienes una reserva pendiente de check-in. ¿En cuál de nuestras sucursales quieres agendar hoy?`,
           timestamp: nowTime,
           suggestedSpots: [
-            "Ver lugares Reformer 18:30",
-            "Ver tapetes Hot Pilates 19:30",
+            "Reservar lugar 3 en Devotion Zibatá",
+            "Reservar lugar 4 en Devotion Juriquilla",
+            "Reservar lugar 2 en Stiliza San Isidro",
           ],
         };
     state.messages.push(botReply);
@@ -156,112 +173,18 @@ export function processAIChatTurn(params: {
     return { state, replyMessages: [botReply] };
   }
 
-  // 3. Ask specifically about Hot Pilates or Mats
-  if (lower.includes("hot") || lower.includes("tapete") || lower.includes("calor") || lower.includes("19:30")) {
-    const hotSession =
-      state.sessions.find((s) => s.id === "ses-4") ||
-      state.sessions.find((s) => s.discipline === "hot_pilates")!;
-    const room = state.rooms.find((r) => r.id === hotSession.roomId)!;
-    const occupied = new Set(
-      state.bookings
-        .filter((b) => b.sessionId === hotSession.id && b.status !== "cancelada")
-        .map((b) => b.spotId)
-    );
-    const availableSpots = room.spots.filter(
-      (s) => !occupied.has(s.id) && s.status !== "maintenance"
-    );
-
-    const botReply: ChatMessage = {
-      id: `msg-${Date.now()}-bot`,
-      clientId: client.id,
-      sender: "bot",
-      text: `🔥 Para **${hotSession.title}** (${hotSession.startTime} hrs con ${hotSession.instructor} · 38.5°C Infrarrojo) quedan **${availableSpots.length} tapetes libres** de ${room.spots.length}.\n\nTapetes disponibles frente al espejo y paneles IR: **${availableSpots
-        .slice(0, 6)
-        .map((s) => s.id)
-        .join(", ")}**.\n\n¿Cuál tapete te aparto y te envío tu QR por aquí?`,
-      timestamp: nowTime,
-      suggestedSpots: availableSpots.slice(0, 4).map((s) => `Reservar ${s.id} a las ${hotSession.startTime}`),
-    };
-    state.messages.push(botReply);
-    writeDB(state);
-    return { state, replyMessages: [botReply] };
-  }
-
-  // 4. Ask specifically about Reformer or Machines
-  if (
-    lower.includes("reformer") ||
-    lower.includes("máquina") ||
-    lower.includes("maquina") ||
-    lower.includes("18:30") ||
-    lower.includes("lugar")
-  ) {
-    const refSession =
-      state.sessions.find((s) => s.id === "ses-3") ||
-      state.sessions.find((s) => s.discipline === "reformer")!;
-    const room = state.rooms.find((r) => r.id === refSession.roomId)!;
-    const occupied = new Set(
-      state.bookings
-        .filter((b) => b.sessionId === refSession.id && b.status !== "cancelada")
-        .map((b) => b.spotId)
-    );
-    const availableSpots = room.spots.filter(
-      (s) => !occupied.has(s.id) && s.status !== "maintenance"
-    );
-
-    const botReply: ChatMessage = {
-      id: `msg-${Date.now()}-bot`,
-      clientId: client.id,
-      sender: "bot",
-      text: `✨ Para **${refSession.title}** (${refSession.startTime} hrs con ${refSession.instructor}) en ${room.name} tenemos **${availableSpots.length} máquinas Reformer disponibles**.\n\nMáquinas libres: **${availableSpots
-        .slice(0, 6)
-        .map((s) => `${s.id} (${s.zone})`)
-        .join(", ")}**.\n\nEscribe o selecciona la máquina que prefieras para generarte tu QR de acceso:`,
-      timestamp: nowTime,
-      suggestedSpots: availableSpots.slice(0, 4).map((s) => `Reservar ${s.id} a las ${refSession.startTime}`),
-    };
-    state.messages.push(botReply);
-    writeDB(state);
-    return { state, replyMessages: [botReply] };
-  }
-
-  // 5. Credits / package inquiry
-  if (lower.includes("crédito") || lower.includes("credito") || lower.includes("paquete") || lower.includes("clases me quedan")) {
-    const botReply: ChatMessage = {
-      id: `msg-${Date.now()}-bot`,
-      clientId: client.id,
-      sender: "bot",
-      text: `🤍 Hola ${firstName}, tu paquete actual es **${client.activePackageName}**.\n• Créditos disponibles: **${client.creditsRemaining} de ${client.creditsTotal}**\n• Vigencia hasta: **${client.packageExpiresAt}**\n• Total de clases tomadas en Stiliza Devotion: **${client.totalAttended}**\n\n¿Deseas agendar una clase con tus créditos?`,
-      timestamp: nowTime,
-      suggestedSpots: [
-        "Ver lugares Reformer 18:30",
-        "Ver tapetes Hot Pilates 19:30",
-      ],
-    };
-    state.messages.push(botReply);
-    writeDB(state);
-    return { state, replyMessages: [botReply] };
-  }
-
-  // 6. Default helpful concierge response showing today's schedule & quick spot booking
+  // Default helpful response listing the 6 branches
   const botReply: ChatMessage = {
     id: `msg-${Date.now()}-bot`,
     clientId: client.id,
     sender: "bot",
-    text: `¡Hola ${firstName}! Soy **Stiliza Concierge IA** 🤍. Tienes **${client.creditsRemaining} créditos disponibles**${
-      client.preferredSpot ? ` y sabemos que tu lugar favorito es **${client.preferredSpot}**` : ""
-    }.\n\nEstas son nuestras próximas clases destacadas:\n• **18:30 hrs** — Athletic Reformer Flow (Coach Alejandra M.)\n• **19:30 hrs** — Candlelight Hot Pilates Detox 38°C (Coach Fernanda L.)\n• **Mañana 08:00 hrs** — Sunrise Reformer Core & Arms\n\nDime qué clase y número de máquina (` +
-      "`R-01` a `R-12`" +
-      `) o tapete (` +
-      "`M-01` a `M-16`" +
-      `) quieres, y te mando tu código QR al instante:`,
+    text: `¡Hola ${firstName}! Soy **Stiliza & Devotion Concierge IA** 🤍. Tienes **${client.creditsRemaining} tokens disponibles**.\n\nNuestras sucursales y horarios de hoy:\n• **Stiliza San Isidro** (18:00 hrs · 5 lugares en fila: 1 al 5)\n• **Stiliza Juriquilla** (18:30 hrs · 8 lugares en fila: 1 al 8)\n• **Devotion Zibatá** (18:30 hrs · 12 lugares, frente: 1,2,Coach,3,4,5)\n• **Devotion Juriquilla** (19:30 hrs · 12 lugares, frente: 6,5,4,Coach,3,2,1)\n• **Devotion Campanario** (19:00 hrs · 12 lugares, frente: 1,2,3,Coach,4,5,6)\n\nDime qué sucursal y qué número de lugar quieres, y te mando tu código QR al instante:`,
     timestamp: nowTime,
     suggestedSpots: [
-      client.preferredSpot
-        ? `Reservar mi favorito ${client.preferredSpot}`
-        : "Reservar R-04 a las 18:30",
-      "Ver lugares Reformer 18:30",
-      "Ver tapetes Hot Pilates 19:30",
-      "Reenviar mi código QR",
+      "Reservar lugar 3 en Devotion Zibatá",
+      "Reservar lugar 5 en Devotion Juriquilla",
+      "Reservar lugar 2 en Devotion Campanario",
+      "Reservar lugar 4 en Stiliza Juriquilla",
     ],
   };
 

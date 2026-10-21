@@ -66,6 +66,10 @@ export interface SpotConfig {
   status?: "available" | "maintenance";
 }
 
+export type RoomLayoutCell =
+  | { kind: "spot"; spotId: string }
+  | { kind: "coach"; label?: string };
+
 export interface StudioRoom {
   id: string;
   branchId: string;
@@ -77,6 +81,7 @@ export interface StudioRoom {
   rows: number;
   cols: number;
   spots: SpotConfig[];
+  layoutRows?: RoomLayoutCell[][];
 }
 
 export interface ClassPackage {

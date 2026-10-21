@@ -336,13 +336,13 @@ export function WhatsAppAICenter({
                 type="button"
                 onClick={() =>
                   handleSend(
-                    `Hola! Quiero agendar Reformer a las ${refSession.startTime} en la máquina ${spot.id}`
+                    `Hola! Quiero agendar en ${refSession.branchName} en el lugar ${spot.id}`
                   )
                 }
                 className="inline-flex items-center gap-1 rounded-full bg-stone-900 hover:bg-stone-800 text-amber-200 px-2.5 py-1 text-[11px] font-medium transition"
               >
                 <Sparkles className="h-3 w-3" />
-                Máquina {spot.id} ({refSession.startTime})
+                Lugar #{spot.id} ({refSession.branchName})
               </button>
             ))}
             {freeHotMats.slice(0, 2).map((spot) => (
@@ -351,13 +351,13 @@ export function WhatsAppAICenter({
                 type="button"
                 onClick={() =>
                   handleSend(
-                    `Hola! Quiero agendar Hot Pilates a las ${hotSession.startTime} en el tapete ${spot.id}`
+                    `Hola! Quiero agendar en ${hotSession.branchName} en el lugar ${spot.id}`
                   )
                 }
                 className="inline-flex items-center gap-1 rounded-full bg-orange-700 hover:bg-orange-600 text-white px-2.5 py-1 text-[11px] font-medium transition"
               >
                 <Flame className="h-3 w-3" />
-                Tapete {spot.id} ({hotSession.startTime})
+                Lugar #{spot.id} ({hotSession.branchName})
               </button>
             ))}
             <button
