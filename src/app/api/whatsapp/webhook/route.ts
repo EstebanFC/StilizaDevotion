@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDB, writeDB } from "@/lib/db";
 import {
   loadStateFromSupabase,
   saveStateToSupabase,
@@ -7,13 +6,6 @@ import {
 import { processAIChatTurn } from "@/lib/ai-bot";
 import { sendRealWhatsAppMessage } from "@/lib/whatsapp-sender";
 import { Client } from "@/types/crm";
-
-let lastWebhookDiagnostics: {
-  receivedAt?: string;
-  fromPhone?: string;
-  textBody?: string;
-  sendResult?: unknown;
-} = {};
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -28,19 +20,24 @@ export async function GET(req: NextRequest) {
     return new NextResponse(challenge, { status: 200 });
   }
 
-  const state = readDB();
-  const runtimeToken = (
-    state.aiSettings as unknown as { metaAccessToken?: string }
-  )?.metaAccessToken;
+  const state = await loadStateFromSupabase();
+  const aiMeta = state.aiSettings as unknown as {
+    metaAccessToken?: string;
+    metaPhoneNumberId?: string;
+    lastWebhookDiagnostics?: unknown;
+  };
 
   return NextResponse.json({
-    status: "Stiliza Devotion WhatsApp AI Webhook Ready",
+    status: "Stiliza & Devotion WhatsApp AI Webhook Ready (Supabase Synced)",
+    dedicatedWhatsAppNumber: "+52 1 446 403 0535",
     verifyTokenExpected: expectedToken,
     hasEnvAccessToken: Boolean(process.env.WHATSAPP_ACCESS_TOKEN),
-    hasRuntimeAccessToken: Boolean(runtimeToken),
+    hasSupabaseAccessToken: Boolean(aiMeta?.metaAccessToken),
     phoneNumberIdConfigured:
-      process.env.WHATSAPP_PHONE_NUMBER_ID || "1414880558369692",
-    lastWebhookDiagnostics,
+      aiMeta?.metaPhoneNumberId ||
+      process.env.WHATSAPP_PHONE_NUMBER_ID ||
+      "1391915687338824",
+    lastWebhookDiagnostics: aiMeta?.lastWebhookDiagnostics || null,
   });
 }
 
@@ -78,7 +75,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!textBody) {
-      return NextResponse.json({ received: true, note: "Status or non-text event ignored" });
+      return NextResponse.json({
+        received: true,
+        note: "Status or non-text event ignored",
+      });
     }
 
     const state = await loadStateFromSupabase();
@@ -88,7 +88,6 @@ export async function POST(req: NextRequest) {
       (c) => cleanDigits && c.phone.replace(/\D/g, "").endsWith(cleanDigits)
     );
 
-    // Si escribe un número nuevo que no está en el CRM, lo registramos automáticamente con créditos de bienvenida
     if (!client && fromPhone) {
       const displayName = profileName || `Alumna WhatsApp (${cleanDigits})`;
       const newClient: Client = {
@@ -97,17 +96,18 @@ export async function POST(req: NextRequest) {
         phone: `+${fromPhone.replace(/\D/g, "")}`,
         email: "whatsapp@stilizadevotion.com",
         avatarInitials: displayName.slice(0, 2).toUpperCase(),
-        activePackageName: "Devotion Pack 8 Clases",
+        activePackageName: "Devotion & Stiliza 8 Tokens",
         creditsRemaining: 8,
         creditsTotal: 8,
         packageExpiresAt: "2026-11-30",
         status: "activo",
         totalAttended: 0,
-        preferredSpot: "R-04",
+        preferredSpot: "3",
+        homeBranchName: "Devotion Zibatá",
         joinedAt: new Date().toISOString().split("T")[0],
       };
       state.clients.unshift(newClient);
-      writeDB(state);
+      await saveStateToSupabase(state);
       client = newClient;
     }
 
@@ -119,7 +119,6 @@ export async function POST(req: NextRequest) {
       clientId: client.id,
       userText: textBody,
     });
-    await saveStateToSupabase(updatedState);
 
     const targetPhone = fromPhone || client.phone;
     let lastSendResult: unknown = null;
@@ -132,12 +131,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    lastWebhookDiagnostics = {
+    (
+      updatedState.aiSettings as unknown as {
+        lastWebhookDiagnostics?: unknown;
+      }
+    ).lastWebhookDiagnostics = {
       receivedAt: new Date().toISOString(),
       fromPhone: targetPhone,
       textBody,
       sendResult: lastSendResult,
     };
+
+    await saveStateToSupabase(updatedState);
 
     return NextResponse.json({
       received: true,

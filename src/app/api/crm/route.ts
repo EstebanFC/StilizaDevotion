@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
           metaPhoneNumberId?: string;
         }
       ).metaPhoneNumberId = String(
-        phoneNumberId || "1414880558369692"
+        phoneNumberId || "1391915687338824"
       ).trim();
 
       if (testRecipientPhone && state.clients[0]) {

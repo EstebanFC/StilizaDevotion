@@ -34,7 +34,7 @@ export function WhatsAppAICenter({
   const [sending, setSending] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(true);
   const [metaTokenInput, setMetaTokenInput] = useState("");
-  const [metaPhoneIdInput, setMetaPhoneIdInput] = useState("1414880558369692");
+  const [metaPhoneIdInput, setMetaPhoneIdInput] = useState("1391915687338824");
   const [recipientPhoneInput, setRecipientPhoneInput] =
     useState("+52 987 871 0684");
   const [metaTestStatus, setMetaTestStatus] = useState<string | null>(null);

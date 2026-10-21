@@ -1,0 +1,1429 @@
+{
+  "rooms": [
+    {
+      "id": "room-stiliza-san-isidro",
+      "cols": 5,
+      "name": "Salón Reformer · Stiliza San Isidro",
+      "rows": 1,
+      "brand": "Stiliza",
+      "spots": [
+        {
+          "id": "1",
+          "col": 1,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #1",
+          "status": "available",
+          "shortLabel": "#1"
+        },
+        {
+          "id": "2",
+          "col": 2,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #2",
+          "status": "available",
+          "shortLabel": "#2"
+        },
+        {
+          "id": "3",
+          "col": 3,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #3",
+          "status": "available",
+          "shortLabel": "#3"
+        },
+        {
+          "id": "4",
+          "col": 4,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #4",
+          "status": "available",
+          "shortLabel": "#4"
+        },
+        {
+          "id": "5",
+          "col": 5,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #5",
+          "status": "available",
+          "shortLabel": "#5"
+        }
+      ],
+      "branchId": "br-stiliza-san-isidro",
+      "branchName": "Stiliza San Isidro",
+      "discipline": "reformer",
+      "layoutRows": [
+        [
+          {
+            "kind": "spot",
+            "spotId": "1"
+          },
+          {
+            "kind": "spot",
+            "spotId": "2"
+          },
+          {
+            "kind": "spot",
+            "spotId": "3"
+          },
+          {
+            "kind": "spot",
+            "spotId": "4"
+          },
+          {
+            "kind": "spot",
+            "spotId": "5"
+          }
+        ]
+      ],
+      "temperature": "5 lugares en 1 fila (Izquierda a Derecha: 1 al 5)"
+    },
+    {
+      "id": "room-stiliza-juriquilla",
+      "cols": 8,
+      "name": "Salón Reformer · Stiliza Juriquilla",
+      "rows": 1,
+      "brand": "Stiliza",
+      "spots": [
+        {
+          "id": "1",
+          "col": 1,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #1",
+          "status": "available",
+          "shortLabel": "#1"
+        },
+        {
+          "id": "2",
+          "col": 2,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #2",
+          "status": "available",
+          "shortLabel": "#2"
+        },
+        {
+          "id": "3",
+          "col": 3,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #3",
+          "status": "available",
+          "shortLabel": "#3"
+        },
+        {
+          "id": "4",
+          "col": 4,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #4",
+          "status": "available",
+          "shortLabel": "#4"
+        },
+        {
+          "id": "5",
+          "col": 5,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #5",
+          "status": "available",
+          "shortLabel": "#5"
+        },
+        {
+          "id": "6",
+          "col": 6,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #6",
+          "status": "available",
+          "shortLabel": "#6"
+        },
+        {
+          "id": "7",
+          "col": 7,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #7",
+          "status": "available",
+          "shortLabel": "#7"
+        },
+        {
+          "id": "8",
+          "col": 8,
+          "row": 1,
+          "type": "reformer_machine",
+          "zone": "Frente al Espejo",
+          "label": "Reformer #8",
+          "status": "available",
+          "shortLabel": "#8"
+        }
+      ],
+      "branchId": "br-stiliza-juriquilla",
+      "branchName": "Stiliza Juriquilla",
+      "discipline": "reformer",
+      "layoutRows": [
+        [
+          {
+            "kind": "spot",
+            "spotId": "1"
+          },
+          {
+            "kind": "spot",
+            "spotId": "2"
+          },
+          {
+            "kind": "spot",
+            "spotId": "3"
+          },
+          {
+            "kind": "spot",
+            "spotId": "4"
+          },
+          {
+            "kind": "spot",
+            "spotId": "5"
+          },
+          {
+            "kind": "spot",
+            "spotId": "6"
+          },
+          {
+            "kind": "spot",
+            "spotId": "7"
+          },
+          {
+            "kind": "spot",
+            "spotId": "8"
+          }
+        ]
+      ],
+      "temperature": "8 lugares en 1 fila (Izquierda a Derecha: 1 al 8)"
+    },
+    {
+      "id": "room-stiliza-campanario",
+      "cols": 0,
+      "name": "Salón Reformer · Stiliza Campanario",
+      "rows": 0,
+      "brand": "Stiliza",
+      "spots": [],
+      "branchId": "br-stiliza-campanario",
+      "branchName": "Stiliza Campanario",
+      "discipline": "reformer",
+      "layoutRows": [],
+      "temperature": "0 lugares configurados de momento (Próxima apertura)"
+    },
+    {
+      "id": "room-devotion-zibata",
+      "cols": 7,
+      "name": "Hot Studio · Devotion Zibatá",
+      "rows": 2,
+      "brand": "Devotion",
+      "spots": [
+        {
+          "id": "1",
+          "col": 1,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #1",
+          "status": "available",
+          "shortLabel": "#1"
+        },
+        {
+          "id": "2",
+          "col": 2,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #2",
+          "status": "available",
+          "shortLabel": "#2"
+        },
+        {
+          "id": "3",
+          "col": 4,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #3",
+          "status": "available",
+          "shortLabel": "#3"
+        },
+        {
+          "id": "4",
+          "col": 5,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #4",
+          "status": "available",
+          "shortLabel": "#4"
+        },
+        {
+          "id": "5",
+          "col": 6,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #5",
+          "status": "available",
+          "shortLabel": "#5"
+        },
+        {
+          "id": "6",
+          "col": 7,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #6",
+          "status": "available",
+          "shortLabel": "#6"
+        },
+        {
+          "id": "7",
+          "col": 6,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #7",
+          "status": "available",
+          "shortLabel": "#7"
+        },
+        {
+          "id": "8",
+          "col": 5,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #8",
+          "status": "available",
+          "shortLabel": "#8"
+        },
+        {
+          "id": "9",
+          "col": 4,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #9",
+          "status": "available",
+          "shortLabel": "#9"
+        },
+        {
+          "id": "10",
+          "col": 3,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #10",
+          "status": "available",
+          "shortLabel": "#10"
+        },
+        {
+          "id": "11",
+          "col": 2,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #11",
+          "status": "available",
+          "shortLabel": "#11"
+        },
+        {
+          "id": "12",
+          "col": 1,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #12",
+          "status": "available",
+          "shortLabel": "#12"
+        }
+      ],
+      "branchId": "br-devotion-zibata",
+      "branchName": "Devotion Zibatá",
+      "discipline": "hot_pilates",
+      "layoutRows": [
+        [
+          {
+            "kind": "spot",
+            "spotId": "1"
+          },
+          {
+            "kind": "spot",
+            "spotId": "2"
+          },
+          {
+            "kind": "coach",
+            "label": "COACH"
+          },
+          {
+            "kind": "spot",
+            "spotId": "3"
+          },
+          {
+            "kind": "spot",
+            "spotId": "4"
+          },
+          {
+            "kind": "spot",
+            "spotId": "5"
+          }
+        ],
+        [
+          {
+            "kind": "spot",
+            "spotId": "12"
+          },
+          {
+            "kind": "spot",
+            "spotId": "11"
+          },
+          {
+            "kind": "spot",
+            "spotId": "10"
+          },
+          {
+            "kind": "spot",
+            "spotId": "9"
+          },
+          {
+            "kind": "spot",
+            "spotId": "8"
+          },
+          {
+            "kind": "spot",
+            "spotId": "7"
+          },
+          {
+            "kind": "spot",
+            "spotId": "6"
+          }
+        ]
+      ],
+      "temperature": "38.5°C Infrarrojo · Frente: 1,2,Coach,3,4,5 | Atrás: 12,11,10,9,8,7,6"
+    },
+    {
+      "id": "room-devotion-juriquilla",
+      "cols": 7,
+      "name": "Hot Studio · Devotion Juriquilla",
+      "rows": 2,
+      "brand": "Devotion",
+      "spots": [
+        {
+          "id": "1",
+          "col": 7,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #1",
+          "status": "available",
+          "shortLabel": "#1"
+        },
+        {
+          "id": "2",
+          "col": 6,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #2",
+          "status": "available",
+          "shortLabel": "#2"
+        },
+        {
+          "id": "3",
+          "col": 5,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #3",
+          "status": "available",
+          "shortLabel": "#3"
+        },
+        {
+          "id": "4",
+          "col": 3,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #4",
+          "status": "available",
+          "shortLabel": "#4"
+        },
+        {
+          "id": "5",
+          "col": 2,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #5",
+          "status": "available",
+          "shortLabel": "#5"
+        },
+        {
+          "id": "6",
+          "col": 1,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #6",
+          "status": "available",
+          "shortLabel": "#6"
+        },
+        {
+          "id": "7",
+          "col": 1,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #7",
+          "status": "available",
+          "shortLabel": "#7"
+        },
+        {
+          "id": "8",
+          "col": 2,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #8",
+          "status": "available",
+          "shortLabel": "#8"
+        },
+        {
+          "id": "9",
+          "col": 3,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #9",
+          "status": "available",
+          "shortLabel": "#9"
+        },
+        {
+          "id": "10",
+          "col": 4,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #10",
+          "status": "available",
+          "shortLabel": "#10"
+        },
+        {
+          "id": "11",
+          "col": 5,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #11",
+          "status": "available",
+          "shortLabel": "#11"
+        },
+        {
+          "id": "12",
+          "col": 6,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #12",
+          "status": "available",
+          "shortLabel": "#12"
+        }
+      ],
+      "branchId": "br-devotion-juriquilla",
+      "branchName": "Devotion Juriquilla",
+      "discipline": "hot_pilates",
+      "layoutRows": [
+        [
+          {
+            "kind": "spot",
+            "spotId": "6"
+          },
+          {
+            "kind": "spot",
+            "spotId": "5"
+          },
+          {
+            "kind": "spot",
+            "spotId": "4"
+          },
+          {
+            "kind": "coach",
+            "label": "COACH"
+          },
+          {
+            "kind": "spot",
+            "spotId": "3"
+          },
+          {
+            "kind": "spot",
+            "spotId": "2"
+          },
+          {
+            "kind": "spot",
+            "spotId": "1"
+          }
+        ],
+        [
+          {
+            "kind": "spot",
+            "spotId": "7"
+          },
+          {
+            "kind": "spot",
+            "spotId": "8"
+          },
+          {
+            "kind": "spot",
+            "spotId": "9"
+          },
+          {
+            "kind": "spot",
+            "spotId": "10"
+          },
+          {
+            "kind": "spot",
+            "spotId": "11"
+          },
+          {
+            "kind": "spot",
+            "spotId": "12"
+          }
+        ]
+      ],
+      "temperature": "38.5°C Infrarrojo · Frente: 6,5,4,Coach,3,2,1 | Atrás: 7,8,9,10,11,12"
+    },
+    {
+      "id": "room-devotion-campanario",
+      "cols": 7,
+      "name": "Hot Studio · Devotion Campanario",
+      "rows": 2,
+      "brand": "Devotion",
+      "spots": [
+        {
+          "id": "1",
+          "col": 1,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #1",
+          "status": "available",
+          "shortLabel": "#1"
+        },
+        {
+          "id": "2",
+          "col": 2,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #2",
+          "status": "available",
+          "shortLabel": "#2"
+        },
+        {
+          "id": "3",
+          "col": 3,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #3",
+          "status": "available",
+          "shortLabel": "#3"
+        },
+        {
+          "id": "4",
+          "col": 5,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #4",
+          "status": "available",
+          "shortLabel": "#4"
+        },
+        {
+          "id": "5",
+          "col": 6,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #5",
+          "status": "available",
+          "shortLabel": "#5"
+        },
+        {
+          "id": "6",
+          "col": 7,
+          "row": 1,
+          "type": "hot_mat",
+          "zone": "Frente al Espejo",
+          "label": "Tapete #6",
+          "status": "available",
+          "shortLabel": "#6"
+        },
+        {
+          "id": "7",
+          "col": 1,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #7",
+          "status": "available",
+          "shortLabel": "#7"
+        },
+        {
+          "id": "8",
+          "col": 2,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #8",
+          "status": "available",
+          "shortLabel": "#8"
+        },
+        {
+          "id": "9",
+          "col": 3,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #9",
+          "status": "available",
+          "shortLabel": "#9"
+        },
+        {
+          "id": "10",
+          "col": 4,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #10",
+          "status": "available",
+          "shortLabel": "#10"
+        },
+        {
+          "id": "11",
+          "col": 5,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #11",
+          "status": "available",
+          "shortLabel": "#11"
+        },
+        {
+          "id": "12",
+          "col": 6,
+          "row": 2,
+          "type": "hot_mat",
+          "zone": "Zona Posterior",
+          "label": "Tapete #12",
+          "status": "available",
+          "shortLabel": "#12"
+        }
+      ],
+      "branchId": "br-devotion-campanario",
+      "branchName": "Devotion Campanario",
+      "discipline": "hot_pilates",
+      "layoutRows": [
+        [
+          {
+            "kind": "spot",
+            "spotId": "1"
+          },
+          {
+            "kind": "spot",
+            "spotId": "2"
+          },
+          {
+            "kind": "spot",
+            "spotId": "3"
+          },
+          {
+            "kind": "coach",
+            "label": "COACH"
+          },
+          {
+            "kind": "spot",
+            "spotId": "4"
+          },
+          {
+            "kind": "spot",
+            "spotId": "5"
+          },
+          {
+            "kind": "spot",
+            "spotId": "6"
+          }
+        ],
+        [
+          {
+            "kind": "spot",
+            "spotId": "7"
+          },
+          {
+            "kind": "spot",
+            "spotId": "8"
+          },
+          {
+            "kind": "spot",
+            "spotId": "9"
+          },
+          {
+            "kind": "spot",
+            "spotId": "10"
+          },
+          {
+            "kind": "spot",
+            "spotId": "11"
+          },
+          {
+            "kind": "spot",
+            "spotId": "12"
+          }
+        ]
+      ],
+      "temperature": "38.5°C Infrarrojo · Frente: 1,2,3,Coach,4,5,6 | Atrás: 7,8,9,10,11,12"
+    }
+  ],
+  "clients": [
+    {
+      "id": "cli-1",
+      "name": "Valeria Montemayor",
+      "email": "valeria.m@gmail.com",
+      "phone": "+52 987 871 0684",
+      "status": "activo",
+      "joinedAt": "2025-08-14",
+      "creditsTotal": 16,
+      "medicalNotes": "Ninguna lesión. Prefiere lugar 3 junto al Coach.",
+      "noShowsCount": 0,
+      "preferredSpot": "3",
+      "totalAttended": 42,
+      "avatarInitials": "VM",
+      "homeBranchName": "Devotion Zibatá",
+      "creditsRemaining": 11,
+      "packageExpiresAt": "2026-11-25",
+      "activePackageName": "Sculpt & Burn 16 Tokens"
+    },
+    {
+      "id": "cli-2",
+      "name": "Camila Elizondo",
+      "email": "camila.elizondo@outlook.com",
+      "phone": "+52 442 910 3341",
+      "status": "pocos_creditos",
+      "joinedAt": "2026-01-10",
+      "creditsTotal": 8,
+      "medicalNotes": "Cuidado muñeca derecha en planchas.",
+      "noShowsCount": 1,
+      "preferredSpot": "4",
+      "totalAttended": 19,
+      "avatarInitials": "CE",
+      "homeBranchName": "Devotion Juriquilla",
+      "creditsRemaining": 2,
+      "packageExpiresAt": "2026-10-29",
+      "activePackageName": "Devotion & Stiliza 8 Tokens"
+    },
+    {
+      "id": "cli-3",
+      "name": "Sofía Villalobos",
+      "email": "sofi.villalobos@icloud.com",
+      "phone": "+52 442 773 1289",
+      "status": "activo",
+      "joinedAt": "2025-03-02",
+      "creditsTotal": 30,
+      "medicalNotes": "Alumna VIP embajadora.",
+      "noShowsCount": 0,
+      "preferredSpot": "1",
+      "totalAttended": 86,
+      "avatarInitials": "SV",
+      "homeBranchName": "Stiliza Juriquilla",
+      "creditsRemaining": 24,
+      "packageExpiresAt": "2026-11-18",
+      "activePackageName": "Black Pass 30 Tokens"
+    },
+    {
+      "id": "cli-4",
+      "name": "Mariana Garza",
+      "email": "mariana.garza@gmail.com",
+      "phone": "+52 442 234 6780",
+      "status": "activo",
+      "joinedAt": "2026-05-20",
+      "creditsTotal": 8,
+      "noShowsCount": 0,
+      "preferredSpot": "2",
+      "totalAttended": 14,
+      "avatarInitials": "MG",
+      "homeBranchName": "Devotion Campanario",
+      "creditsRemaining": 6,
+      "packageExpiresAt": "2026-11-15",
+      "activePackageName": "Devotion & Stiliza 8 Tokens"
+    },
+    {
+      "id": "cli-5",
+      "name": "Diego Santillán",
+      "email": "dsantillan@empresa.mx",
+      "phone": "+52 442 619 4422",
+      "status": "sin_creditos",
+      "joinedAt": "2026-09-01",
+      "creditsTotal": 1,
+      "medicalNotes": "Tensión lumbar ocasional.",
+      "noShowsCount": 3,
+      "preferredSpot": "5",
+      "totalAttended": 5,
+      "avatarInitials": "DS",
+      "homeBranchName": "Stiliza San Isidro",
+      "creditsRemaining": 0,
+      "packageExpiresAt": "2026-10-22",
+      "activePackageName": "Single Drop-In (1 Token)"
+    },
+    {
+      "id": "cli-6",
+      "name": "Renata Altamirano",
+      "email": "renata.alt@gmail.com",
+      "phone": "+52 442 339 1120",
+      "status": "activo",
+      "joinedAt": "2025-11-11",
+      "creditsTotal": 16,
+      "noShowsCount": 0,
+      "preferredSpot": "6",
+      "totalAttended": 31,
+      "avatarInitials": "RA",
+      "homeBranchName": "Devotion Juriquilla",
+      "creditsRemaining": 14,
+      "packageExpiresAt": "2026-11-30",
+      "activePackageName": "Sculpt & Burn 16 Tokens"
+    }
+  ],
+  "coaches": [
+    {
+      "id": "coach-1",
+      "name": "Coach Daniela R.",
+      "avatar": "DR",
+      "specialty": "reformer",
+      "vibeBadge": "✨ Reina del Core & Reformer",
+      "occupancyRate": 98
+    },
+    {
+      "id": "coach-2",
+      "name": "Coach Paulina V.",
+      "avatar": "PV",
+      "specialty": "hot_pilates",
+      "vibeBadge": "🔥 Queen del Inferno 38°C",
+      "occupancyRate": 95
+    },
+    {
+      "id": "coach-3",
+      "name": "Coach Alejandra M.",
+      "avatar": "AM",
+      "specialty": "reformer",
+      "vibeBadge": "⚡ Athletic Flow Master",
+      "occupancyRate": 93
+    },
+    {
+      "id": "coach-4",
+      "name": "Coach Fernanda L.",
+      "avatar": "FL",
+      "specialty": "hot_pilates",
+      "vibeBadge": "🕯️ Candlelight & Detox Guru",
+      "occupancyRate": 96
+    },
+    {
+      "id": "coach-5",
+      "name": "Coach Valentina S.",
+      "avatar": "VS",
+      "specialty": "ambas",
+      "vibeBadge": "🍑 Glute & Sculpt Specialist",
+      "occupancyRate": 91
+    }
+  ],
+  "bookings": [
+    {
+      "id": "bk-101",
+      "date": "2026-10-20",
+      "spotId": "3",
+      "status": "confirmada",
+      "qrToken": "SD-2026-ZIB3-7741",
+      "branchId": "br-devotion-zibata",
+      "clientId": "cli-1",
+      "roomName": "Hot Studio · Devotion Zibatá",
+      "bookedVia": "whatsapp_bot",
+      "createdAt": "2026-10-20T11:20:00-06:00",
+      "sessionId": "ses-zibata-1",
+      "spotLabel": "Tapete #3 (Frente al Espejo)",
+      "startTime": "18:30",
+      "branchName": "Devotion Zibatá",
+      "clientName": "Valeria Montemayor",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Paulina V.",
+      "clientPhone": "+52 987 871 0684",
+      "sessionTitle": "Inferno Hot Pilates 38°C · Zibatá",
+      "whatsappSent": true
+    },
+    {
+      "id": "bk-102",
+      "date": "2026-10-20",
+      "spotId": "10",
+      "status": "asistio",
+      "qrToken": "SD-2026-ZIB10-9920",
+      "branchId": "br-devotion-zibata",
+      "clientId": "cli-3",
+      "roomName": "Hot Studio · Devotion Zibatá",
+      "bookedVia": "kiosk_tablet",
+      "createdAt": "2026-10-20T09:15:00-06:00",
+      "sessionId": "ses-zibata-1",
+      "spotLabel": "Tapete #10 (Zona Posterior)",
+      "startTime": "18:30",
+      "branchName": "Devotion Zibatá",
+      "clientName": "Sofía Villalobos",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Paulina V.",
+      "checkedInAt": "2026-10-20T18:18:00-06:00",
+      "clientPhone": "+52 442 773 1289",
+      "sessionTitle": "Inferno Hot Pilates 38°C · Zibatá",
+      "whatsappSent": true,
+      "checkedInKioskLabel": "Kiosco #1 · Devotion Zibatá"
+    },
+    {
+      "id": "bk-103",
+      "date": "2026-10-20",
+      "spotId": "4",
+      "status": "confirmada",
+      "qrToken": "SD-2026-JUR4-3318",
+      "branchId": "br-devotion-juriquilla",
+      "clientId": "cli-2",
+      "roomName": "Hot Studio · Devotion Juriquilla",
+      "bookedVia": "whatsapp_bot",
+      "createdAt": "2026-10-20T13:05:00-06:00",
+      "sessionId": "ses-dev-juriquilla-1",
+      "spotLabel": "Tapete #4 (Frente junto a Coach)",
+      "startTime": "19:30",
+      "branchName": "Devotion Juriquilla",
+      "clientName": "Camila Elizondo",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Fernanda L.",
+      "clientPhone": "+52 442 910 3341",
+      "sessionTitle": "Candlelight Hot Pilates 38°C · Juriquilla",
+      "whatsappSent": true
+    },
+    {
+      "id": "bk-104",
+      "date": "2026-10-20",
+      "spotId": "2",
+      "status": "confirmada",
+      "qrToken": "SD-2026-CAM2-5512",
+      "branchId": "br-devotion-campanario",
+      "clientId": "cli-4",
+      "roomName": "Hot Studio · Devotion Campanario",
+      "bookedVia": "wellhub",
+      "createdAt": "2026-10-20T14:10:00-06:00",
+      "sessionId": "ses-dev-campanario-1",
+      "spotLabel": "Tapete #2 (Frente al Espejo)",
+      "startTime": "19:00",
+      "branchName": "Devotion Campanario",
+      "clientName": "Mariana Garza",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Valentina S.",
+      "clientPhone": "+52 442 234 6780",
+      "sessionTitle": "Hot Sculpt & Burn 38°C · Campanario",
+      "whatsappSent": true,
+      "externalReservationCode": "WH-48291"
+    },
+    {
+      "id": "bk-105",
+      "date": "2026-10-20",
+      "spotId": "5",
+      "status": "confirmada",
+      "qrToken": "SD-2026-SJUR5-4109",
+      "branchId": "br-stiliza-juriquilla",
+      "clientId": "cli-6",
+      "roomName": "Salón Reformer · Stiliza Juriquilla",
+      "bookedVia": "fitpass",
+      "createdAt": "2026-10-20T15:00:00-06:00",
+      "sessionId": "ses-stiliza-juriquilla-1",
+      "spotLabel": "Reformer #5",
+      "startTime": "18:30",
+      "branchName": "Stiliza Juriquilla",
+      "clientName": "Renata Altamirano",
+      "discipline": "reformer",
+      "instructor": "Coach Alejandra M.",
+      "clientPhone": "+52 442 339 1120",
+      "sessionTitle": "Athletic Reformer · Juriquilla (8 Lugares)",
+      "whatsappSent": true,
+      "externalReservationCode": "FP-99201"
+    },
+    {
+      "id": "bk-106",
+      "date": "2026-10-20",
+      "spotId": "2",
+      "status": "confirmada",
+      "qrToken": "SD-2026-SIS2-8821",
+      "branchId": "br-stiliza-san-isidro",
+      "clientId": "cli-3",
+      "roomName": "Salón Reformer · Stiliza San Isidro",
+      "bookedVia": "kiosk_tablet",
+      "createdAt": "2026-10-20T16:10:00-06:00",
+      "sessionId": "ses-stiliza-sanisidro-1",
+      "spotLabel": "Reformer #2",
+      "startTime": "18:00",
+      "branchName": "Stiliza San Isidro",
+      "clientName": "Sofía Villalobos",
+      "discipline": "reformer",
+      "instructor": "Coach Daniela R.",
+      "clientPhone": "+52 442 773 1289",
+      "sessionTitle": "Reformer Flow · San Isidro (5 Lugares)",
+      "whatsappSent": true
+    }
+  ],
+  "branches": [
+    {
+      "id": "br-stiliza-san-isidro",
+      "name": "Stiliza San Isidro",
+      "brand": "Stiliza",
+      "address": "San Isidro · 5 lugares en fila",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 165000
+    },
+    {
+      "id": "br-stiliza-juriquilla",
+      "name": "Stiliza Juriquilla",
+      "brand": "Stiliza",
+      "address": "Juriquilla · 8 lugares en fila",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 245000
+    },
+    {
+      "id": "br-stiliza-campanario",
+      "name": "Stiliza Campanario",
+      "brand": "Stiliza",
+      "address": "El Campanario · 0 lugares de momento",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 0
+    },
+    {
+      "id": "br-devotion-zibata",
+      "name": "Devotion Zibatá",
+      "brand": "Devotion",
+      "address": "Zibatá · 12 lugares (2 filas con Coach al frente)",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 310000
+    },
+    {
+      "id": "br-devotion-juriquilla",
+      "name": "Devotion Juriquilla",
+      "brand": "Devotion",
+      "address": "Juriquilla · 12 lugares (2 filas con Coach al frente)",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 325000
+    },
+    {
+      "id": "br-devotion-campanario",
+      "name": "Devotion Campanario",
+      "brand": "Devotion",
+      "address": "El Campanario · 12 lugares (2 filas con Coach al frente)",
+      "kiosksCount": 1,
+      "monthlyRevenueMXN": 340000
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-1",
+      "text": "Hola! Quiero agendar hoy a las 18:30 en Devotion Zibatá en el lugar 3 porfa ✨",
+      "sender": "client",
+      "clientId": "cli-1",
+      "timestamp": "11:19 AM"
+    },
+    {
+      "id": "msg-2",
+      "text": "¡Hola Valeria! 🤍 Tu lugar en **Inferno Hot Pilates 38°C · Zibatá** (18:30 hrs) en el **Lugar #3** (enfrente, a la derecha del Coach) ha quedado reservado.\n\nTe descontamos 1 token (te quedan **11 tokens** disponibles). Aquí tienes tu código QR de acceso para escanear en el Kiosco al llegar:",
+      "sender": "bot",
+      "clientId": "cli-1",
+      "timestamp": "11:20 AM",
+      "bookingAttachment": {
+        "id": "bk-101",
+        "date": "2026-10-20",
+        "spotId": "3",
+        "status": "confirmada",
+        "qrToken": "SD-2026-ZIB3-7741",
+        "branchId": "br-devotion-zibata",
+        "clientId": "cli-1",
+        "roomName": "Hot Studio · Devotion Zibatá",
+        "bookedVia": "whatsapp_bot",
+        "createdAt": "2026-10-20T11:20:00-06:00",
+        "sessionId": "ses-zibata-1",
+        "spotLabel": "Tapete #3 (Frente al Espejo)",
+        "startTime": "18:30",
+        "branchName": "Devotion Zibatá",
+        "clientName": "Valeria Montemayor",
+        "discipline": "hot_pilates",
+        "instructor": "Coach Paulina V.",
+        "clientPhone": "+52 987 871 0684",
+        "sessionTitle": "Inferno Hot Pilates 38°C · Zibatá",
+        "whatsappSent": true
+      }
+    }
+  ],
+  "packages": [
+    {
+      "id": "pkg-dropin",
+      "name": "Single Drop-In (1 Token)",
+      "credits": 1,
+      "priceMXN": 380,
+      "promoTag": "Acceso inmediato",
+      "validityDays": 15,
+      "allowedDisciplines": [
+        "reformer",
+        "hot_pilates"
+      ]
+    },
+    {
+      "id": "pkg-devotion-8",
+      "name": "Devotion & Stiliza 8 Tokens",
+      "badge": "Más Vendido",
+      "credits": 8,
+      "priceMXN": 2450,
+      "promoTag": "$306 por clase",
+      "validityDays": 30,
+      "allowedDisciplines": [
+        "reformer",
+        "hot_pilates"
+      ]
+    },
+    {
+      "id": "pkg-sculpt-16",
+      "name": "Sculpt & Burn 16 Tokens (+3 Gratis)",
+      "badge": "Promo Kiosco 🔥",
+      "credits": 19,
+      "priceMXN": 4200,
+      "promoTag": "Incluye 3 tokens de regalo",
+      "validityDays": 45,
+      "allowedDisciplines": [
+        "reformer",
+        "hot_pilates"
+      ]
+    },
+    {
+      "id": "pkg-unlimited",
+      "name": "Black Pass 30 Tokens (Multi-Sucursal)",
+      "badge": "VIP All-Access",
+      "credits": 30,
+      "priceMXN": 5400,
+      "promoTag": "San Isidro · Juriquilla · Zibatá · Campanario",
+      "validityDays": 30,
+      "allowedDisciplines": [
+        "reformer",
+        "hot_pilates"
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "ses-zibata-1",
+      "date": "2026-10-20",
+      "brand": "Devotion",
+      "level": "Todos los niveles",
+      "title": "Inferno Hot Pilates 38°C · Zibatá",
+      "roomId": "room-devotion-zibata",
+      "branchId": "br-devotion-zibata",
+      "roomName": "Hot Studio · Devotion Zibatá",
+      "intensity": "Intensa 🔥",
+      "startTime": "18:30",
+      "branchName": "Devotion Zibatá",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Paulina V.",
+      "durationMinutes": 50,
+      "instructorAvatar": "PV"
+    },
+    {
+      "id": "ses-dev-juriquilla-1",
+      "date": "2026-10-20",
+      "brand": "Devotion",
+      "level": "Todos los niveles",
+      "title": "Candlelight Hot Pilates 38°C · Juriquilla",
+      "roomId": "room-devotion-juriquilla",
+      "branchId": "br-devotion-juriquilla",
+      "roomName": "Hot Studio · Devotion Juriquilla",
+      "intensity": "Intensa 🔥",
+      "startTime": "19:30",
+      "branchName": "Devotion Juriquilla",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Fernanda L.",
+      "specialBadge": "🕯️ Candlelight",
+      "isSpecialClass": true,
+      "durationMinutes": 50,
+      "instructorAvatar": "FL"
+    },
+    {
+      "id": "ses-dev-campanario-1",
+      "date": "2026-10-20",
+      "brand": "Devotion",
+      "level": "Todos los niveles",
+      "title": "Hot Sculpt & Burn 38°C · Campanario",
+      "roomId": "room-devotion-campanario",
+      "branchId": "br-devotion-campanario",
+      "roomName": "Hot Studio · Devotion Campanario",
+      "intensity": "Intensa 🔥",
+      "startTime": "19:00",
+      "branchName": "Devotion Campanario",
+      "discipline": "hot_pilates",
+      "instructor": "Coach Valentina S.",
+      "durationMinutes": 50,
+      "instructorAvatar": "VS"
+    },
+    {
+      "id": "ses-stiliza-sanisidro-1",
+      "date": "2026-10-20",
+      "brand": "Stiliza",
+      "level": "Todos los niveles",
+      "title": "Reformer Flow · San Isidro (5 Lugares)",
+      "roomId": "room-stiliza-san-isidro",
+      "branchId": "br-stiliza-san-isidro",
+      "roomName": "Salón Reformer · Stiliza San Isidro",
+      "intensity": "Alta",
+      "startTime": "18:00",
+      "branchName": "Stiliza San Isidro",
+      "discipline": "reformer",
+      "instructor": "Coach Daniela R.",
+      "durationMinutes": 50,
+      "instructorAvatar": "DR"
+    },
+    {
+      "id": "ses-stiliza-juriquilla-1",
+      "date": "2026-10-20",
+      "brand": "Stiliza",
+      "level": "Intermedio",
+      "title": "Athletic Reformer · Juriquilla (8 Lugares)",
+      "roomId": "room-stiliza-juriquilla",
+      "branchId": "br-stiliza-juriquilla",
+      "roomName": "Salón Reformer · Stiliza Juriquilla",
+      "intensity": "Alta",
+      "startTime": "18:30",
+      "branchName": "Stiliza Juriquilla",
+      "discipline": "reformer",
+      "instructor": "Coach Alejandra M.",
+      "durationMinutes": 50,
+      "instructorAvatar": "AM"
+    },
+    {
+      "id": "ses-stiliza-campanario-1",
+      "date": "2026-10-21",
+      "brand": "Stiliza",
+      "level": "Todos los niveles",
+      "title": "Próxima Apertura · Stiliza Campanario",
+      "roomId": "room-stiliza-campanario",
+      "branchId": "br-stiliza-campanario",
+      "roomName": "Salón Reformer · Stiliza Campanario",
+      "intensity": "Alta",
+      "startTime": "09:00",
+      "branchName": "Stiliza Campanario",
+      "discipline": "reformer",
+      "instructor": "Coach Daniela R.",
+      "durationMinutes": 50,
+      "instructorAvatar": "DR"
+    }
+  ],
+  "aiSettings": {
+    "botName": "Stiliza & Devotion Concierge IA",
+    "autoSendWhatsAppQR": true,
+    "whatsappWebhookMode": "simulator_ready",
+    "reminderMinutesBefore": 120,
+    "cancellationWindowHours": 6
+  },
+  "aggregators": [
+    {
+      "id": "wellhub",
+      "name": "Wellhub",
+      "connected": true,
+      "colorBadge": "bg-rose-500/20 text-rose-300 border-rose-400/30",
+      "lastSyncAt": "Hace 2 min",
+      "autoBlockSpots": true,
+      "connectionType": "api_webhook",
+      "maxSpotsPerSession": 4,
+      "syncedBookingsToday": 4
+    },
+    {
+      "id": "totalpass",
+      "name": "TotalPass",
+      "connected": true,
+      "colorBadge": "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
+      "lastSyncAt": "Hace 5 min",
+      "autoBlockSpots": true,
+      "connectionType": "api_webhook",
+      "maxSpotsPerSession": 4,
+      "syncedBookingsToday": 3
+    },
+    {
+      "id": "fitpass",
+      "name": "FitPass",
+      "connected": true,
+      "colorBadge": "bg-sky-500/20 text-sky-300 border-sky-400/30",
+      "lastSyncAt": "Hace 1 min",
+      "autoBlockSpots": true,
+      "connectionType": "inbound_email_bridge",
+      "maxSpotsPerSession": 4,
+      "syncedBookingsToday": 5
+    },
+    {
+      "id": "nessty",
+      "name": "Nessty",
+      "connected": true,
+      "colorBadge": "bg-purple-500/20 text-purple-300 border-purple-400/30",
+      "lastSyncAt": "Hace 8 min",
+      "autoBlockSpots": true,
+      "connectionType": "inbound_email_bridge",
+      "maxSpotsPerSession": 4,
+      "syncedBookingsToday": 2
+    }
+  ],
+  "promosAndEvents": [
+    {
+      "id": "ev-1",
+      "type": "clase_especial",
+      "title": "DJ Live Sunset Reformer · Juriquilla",
+      "branchId": "br-stiliza-juriquilla",
+      "dateLabel": "Viernes 19:30 hrs",
+      "priceText": "1 Token de tu paquete",
+      "branchName": "Stiliza Juriquilla",
+      "description": "Sesión especial de 50 min con DJ en vivo e hidratación al terminar.",
+      "highlightBadge": "🎧 DJ en Vivo"
+    },
+    {
+      "id": "ev-2",
+      "type": "evento",
+      "title": "Candlelight Soundbath & Hot Pilates 38°C",
+      "branchId": "br-devotion-campanario",
+      "dateLabel": "Sábado 10:30 hrs",
+      "priceText": "1 Token · Cupo 12 lugares",
+      "branchName": "Devotion Campanario",
+      "description": "40 min de Sculpt intenso con calor infrarrojo + 15 min de inmersión sonora.",
+      "highlightBadge": "🕯️ Experiencia Sensorial"
+    },
+    {
+      "id": "ev-3",
+      "type": "promo",
+      "title": "Promo Kiosco: +3 Tokens Gratis en Pack 16",
+      "branchId": "all",
+      "dateLabel": "Vigente toda la semana",
+      "priceText": "$4,200 MXN",
+      "branchName": "Todas las sucursales Stiliza & Devotion",
+      "description": "Recarga hoy directamente en esta tablet el paquete Sculpt & Burn 16 y recibe 19 tokens.",
+      "highlightBadge": "🎁 +3 Tokens Gratis"
+    }
+  ]
+}
