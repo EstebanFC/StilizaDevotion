@@ -22,28 +22,29 @@ export interface SessionUser {
 }
 
 interface LoginGatewayProps {
+  mode: "kiosco_only" | "admin_only";
   branches: Branch[];
   onLogin: (user: SessionUser) => void;
 }
 
-export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
-  const [selectedRole, setSelectedRole] = useState<"kiosco" | "admin">(
-    "kiosco"
-  );
-
+export function LoginGateway({
+  mode,
+  branches,
+  onLogin,
+}: LoginGatewayProps) {
   // Kiosco Login State
   const [selectedBrand, setSelectedBrand] = useState<"all" | StudioBrand>(
     "all"
   );
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    branches[0]?.id || "br-stiliza-polanco"
+    branches[0]?.id || "br-stiliza-san-isidro"
   );
   const [kioskNumber, setKioskNumber] = useState<number>(1);
   const [kioskPin, setKioskPin] = useState<string>("1234");
 
   // Admin Login State
   const [adminUser, setAdminUser] = useState<string>("admin");
-  const [adminPin, setAdminPin] = useState<string>("2026");
+  const [adminPin, setAdminPin] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const filteredBranches = branches.filter((b) =>
@@ -57,6 +58,10 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
 
   const handleKioskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (kioskPin.trim() !== "1234") {
+      setErrorMsg("PIN de Kiosco incorrecto.");
+      return;
+    }
     if (!activeBranch) return;
     const cleanNum = Math.max(1, Number(kioskNumber) || 1);
     onLogin({
@@ -72,7 +77,7 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
   const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminPin.trim() !== "2026" && adminPin.trim() !== "1234") {
-      setErrorMsg("PIN de Administrador incorrecto (usa 2026).");
+      setErrorMsg("Contraseña / PIN de Administrador incorrecto.");
       return;
     }
     onLogin({
@@ -91,54 +96,35 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
           <Flame className="h-3.5 w-3.5 text-orange-400" /> DEVOTION HOT PILATES
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-          Studio OS · Acceso al Sistema
+          {mode === "kiosco_only"
+            ? "Terminal de Kiosco · Recepción"
+            : "Portal Exclusivo de Administración"}
         </h1>
         <p className="text-xs sm:text-sm text-stone-400">
-          Selecciona el modo de operación para esta terminal: Kiosco de
-          Recepción en Sucursal o Panel de Administración General.
+          {mode === "kiosco_only"
+            ? "Configura la sucursal y número de esta tablet para iniciar el modo Kiosco bloqueado para alumnas."
+            : "Acceso restringido únicamente para dirección y administración de sucursales."}
         </p>
       </div>
 
-      {/* Role Switcher Card */}
+      {/* Login Card */}
       <div className="w-full max-w-lg rounded-3xl bg-[#241D19]/90 border border-white/10 shadow-2xl overflow-hidden backdrop-blur-md">
-        {/* Two Role Tabs */}
-        <div className="grid grid-cols-2 p-2 bg-black/40 border-b border-white/10 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedRole("kiosco");
-              setErrorMsg(null);
-            }}
-            className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-bold transition ${
-              selectedRole === "kiosco"
-                ? "bg-amber-400 text-stone-950 shadow-md"
-                : "text-stone-300 hover:bg-white/5"
-            }`}
-          >
-            <Tablet className="h-4 w-4" />
-            Modo Kiosco (Sucursal)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedRole("admin");
-              setErrorMsg(null);
-            }}
-            className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-bold transition ${
-              selectedRole === "admin"
-                ? "bg-white text-stone-950 shadow-md"
-                : "text-stone-300 hover:bg-white/5"
-            }`}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Usuario Admin (Control)
-          </button>
+        <div className="p-4 bg-black/40 border-b border-white/10 flex items-center justify-center gap-2">
+          {mode === "kiosco_only" ? (
+            <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-amber-300">
+              <Tablet className="h-4 w-4" />
+              CONFIGURACIÓN DE TERMINAL KIOSCO
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-white">
+              <ShieldCheck className="h-4 w-4 text-amber-300" />
+              LOGIN ADMINISTRADOR GENERAL
+            </span>
+          )}
         </div>
 
-        {/* Form Body */}
         <div className="p-6 sm:p-8">
-          {selectedRole === "kiosco" ? (
+          {mode === "kiosco_only" ? (
             <form onSubmit={handleKioskSubmit} className="space-y-5">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">
@@ -154,7 +140,7 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
                         : "border-white/10 text-stone-400 hover:text-white"
                     }`}
                   >
-                    Ambas Marcas
+                    Todas (6)
                   </button>
                   <button
                     type="button"
@@ -208,7 +194,7 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
                         value={br.id}
                         className="bg-stone-900"
                       >
-                        [{br.brand.toUpperCase()}] {br.name} — {br.address}
+                        [{br.brand.toUpperCase()}] {br.name}
                       </option>
                     ))}
                   </select>
@@ -234,7 +220,7 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1.5">
-                    PIN de Kiosco
+                    PIN de Kiosco (1234)
                   </label>
                   <input
                     type="password"
@@ -245,23 +231,18 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-3.5 text-xs text-stone-300 space-y-1">
-                <p className="font-semibold text-amber-200">
-                  Permisos de esta Tablet ({`Kiosco #${kioskNumber}`}):
+              {errorMsg && (
+                <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+                  {errorMsg}
                 </p>
-                <p className="text-[11px] text-stone-400">
-                  ✓ Check-in con Lector QR / Cámara · ✓ Venta de Paquetes y
-                  Tokens · ✓ Próximos Horarios y Mapa de Lugares · ✓ Cartelera
-                  de Eventos y Promos. *(Sin acceso a finanzas ni CRM Admin).*
-                </p>
-              </div>
+              )}
 
               <button
                 type="submit"
                 className="w-full rounded-2xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-sm py-3.5 px-6 transition shadow-lg inline-flex items-center justify-center gap-2"
               >
                 <Tablet className="h-4 w-4" />
-                Iniciar {`Kiosco #${kioskNumber}`} en {activeBranch?.name}
+                Activar {`Kiosco #${kioskNumber}`} en {activeBranch?.name}
               </button>
             </form>
           ) : (
@@ -283,14 +264,16 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1.5">
-                  Contraseña / PIN Maestro (Demo: 2026)
+                  Contraseña / PIN Maestro (2026)
                 </label>
                 <div className="relative">
                   <Lock className="h-4 w-4 text-amber-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
+                    required
                     value={adminPin}
                     onChange={(e) => setAdminPin(e.target.value)}
+                    placeholder="Ingresa tu PIN de Administrador (2026)"
                     className="w-full rounded-xl bg-black/50 border border-white/15 pl-10 pr-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
@@ -301,17 +284,6 @@ export function LoginGateway({ branches, onLogin }: LoginGatewayProps) {
                   {errorMsg}
                 </p>
               )}
-
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-3.5 text-xs text-stone-300 space-y-1">
-                <p className="font-semibold text-white">
-                  Control Total Multi-Sucursal (Stiliza & Devotion):
-                </p>
-                <p className="text-[11px] text-stone-400">
-                  ✓ Ocupación en vivo por sucursal · ✓ Modificar horarios,
-                  coaches y clases especiales · ✓ Radar de alumnas, máquinas más
-                  peleadas y métricas · ✓ Configuración de Bot IA WhatsApp.
-                </p>
-              </div>
 
               <button
                 type="submit"
