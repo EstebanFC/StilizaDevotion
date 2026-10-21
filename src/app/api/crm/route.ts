@@ -6,6 +6,10 @@ import {
   readDB,
   writeDB,
 } from "@/lib/db";
+import {
+  loadStateFromSupabase,
+  saveStateToSupabase,
+} from "@/lib/supabase-db";
 import { processAIChatTurn } from "@/lib/ai-bot";
 import { sendRealWhatsAppMessage } from "@/lib/whatsapp-sender";
 import {
@@ -17,12 +21,13 @@ import {
 } from "@/types/crm";
 
 export async function GET() {
-  const state = readDB();
+  const state = await loadStateFromSupabase();
   return NextResponse.json(state);
 }
 
 export async function POST(req: NextRequest) {
   try {
+    await loadStateFromSupabase();
     const body = await req.json();
     const { action } = body;
 
@@ -41,13 +46,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      await saveStateToSupabase(res.state);
+
       if (res.booking) {
         const latestMsg = res.state.messages[res.state.messages.length - 1];
         await sendRealWhatsAppMessage({
           toPhone: res.booking.clientPhone,
           text:
             latestMsg?.text ||
-            `Reserva confirmada en ${res.booking.sessionTitle} (${res.booking.startTime} hrs) · Lugar: ${res.booking.spotId}`,
+            `Reserva confirmada en ${res.booking.sessionTitle} (${res.booking.startTime} hrs) · Lugar: #${res.booking.spotId}`,
           booking: res.booking,
         });
       }
@@ -65,6 +72,9 @@ export async function POST(req: NextRequest) {
         String(qrToken || ""),
         kioskLabel
       );
+      if (result.success) {
+        await saveStateToSupabase(state);
+      }
       return NextResponse.json({
         success: result.success,
         result,
@@ -78,6 +88,8 @@ export async function POST(req: NextRequest) {
         clientId,
         userText: String(text || ""),
       });
+      await saveStateToSupabase(state);
+
       const client = state.clients.find((c) => c.id === clientId);
       if (client) {
         for (const reply of replyMessages) {
@@ -116,12 +128,12 @@ export async function POST(req: NextRequest) {
       if (testRecipientPhone && state.clients[0]) {
         state.clients[0].phone = String(testRecipientPhone).trim();
       }
-      writeDB(state);
+      await saveStateToSupabase(state);
 
       const sampleBooking = state.bookings[0];
       const sendRes = await sendRealWhatsAppMessage({
         toPhone: testRecipientPhone || "+52 987 871 0684",
-        text: "¡Hola! 🤍 Tu conexión de *Stiliza & Devotion CRM + Concierge IA* con WhatsApp está activa. Aquí tienes un pase QR de prueba para escanear en la tablet del Kiosco:",
+        text: "¡Hola! 🤍 Tu conexión de *Stiliza & Devotion CRM + Concierge IA* con WhatsApp y Supabase está activa. Aquí tienes un pase QR de prueba para escanear en la tablet del Kiosco:",
         booking: sampleBooking,
       });
 
@@ -168,7 +180,7 @@ export async function POST(req: NextRequest) {
         timestamp: nowTime,
       });
 
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -196,7 +208,7 @@ export async function POST(req: NextRequest) {
       const newClient: Client = {
         id: `cli-${Date.now()}`,
         name: String(name).trim(),
-        phone: String(phone || "+52 55 0000 0000").trim(),
+        phone: String(phone || "+52 442 000 0000").trim(),
         email: String(email || "alumna@stilizadevotion.com").trim(),
         avatarInitials: initials,
         activePackageName: pkg.name,
@@ -206,9 +218,9 @@ export async function POST(req: NextRequest) {
         status: "activo",
         totalAttended: 0,
         noShowsCount: 0,
-        preferredSpot: preferredSpot || "R-02",
+        preferredSpot: preferredSpot || "3",
         homeBranchName:
-          homeBranchName || state.branches[0]?.name || "Stiliza · Polanco",
+          homeBranchName || state.branches[0]?.name || "Devotion Zibatá",
         medicalNotes: medicalNotes || "",
         joinedAt: new Date().toISOString().split("T")[0],
       };
@@ -218,15 +230,11 @@ export async function POST(req: NextRequest) {
         id: `msg-welcome-${Date.now()}`,
         clientId: newClient.id,
         sender: "bot",
-        text: `¡Bienvenida a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta está activa con **${pkg.name}** (${pkg.credits} tokens). Escríbeme por aquí cuando quieras reservar tu máquina Reformer o tapete de Hot Pilates y te enviaré tu código QR de acceso.`,
+        text: `¡Bienvenida a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta está activa con **${pkg.name}** (${pkg.credits} tokens).`,
         timestamp: "Ahora",
-        suggestedSpots: [
-          "Ver lugares Reformer 18:30",
-          "Ver tapetes Hot Pilates 19:30",
-        ],
       });
 
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, client: newClient, state });
     }
 
@@ -261,7 +269,7 @@ export async function POST(req: NextRequest) {
         roomName: room.name,
         instructor: String(instructor || "Coach Daniela R."),
         instructorAvatar: initials || "CS",
-        date: String(date || "2026-10-19"),
+        date: String(date || "2026-10-20"),
         startTime: String(startTime || "10:00"),
         durationMinutes: 50,
         level: level || "Todos los niveles",
@@ -271,7 +279,7 @@ export async function POST(req: NextRequest) {
       };
 
       state.sessions.push(newSession);
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, session: newSession, state });
     }
 
@@ -308,7 +316,7 @@ export async function POST(req: NextRequest) {
             ses.discipline = room.discipline;
           }
         }
-        writeDB(state);
+        await saveStateToSupabase(state);
       }
       return NextResponse.json({ success: true, state });
     }
@@ -317,7 +325,7 @@ export async function POST(req: NextRequest) {
       const { sessionId } = body;
       const state = readDB();
       state.sessions = state.sessions.filter((s) => s.id !== sessionId);
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -347,7 +355,7 @@ export async function POST(req: NextRequest) {
           : "Todas las sucursales Stiliza & Devotion",
       };
       state.promosAndEvents.unshift(newEv);
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -357,7 +365,7 @@ export async function POST(req: NextRequest) {
       state.promosAndEvents = state.promosAndEvents.filter(
         (e) => e.id !== eventId
       );
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -381,7 +389,7 @@ export async function POST(req: NextRequest) {
         vibeBadge: String(vibeBadge || "✨ Especialista Certificada"),
       };
       state.coaches.push(newCoach);
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -397,7 +405,7 @@ export async function POST(req: NextRequest) {
         monthlyRevenueMXN: 185000,
       };
       state.branches.push(newBr);
-      writeDB(state);
+      await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
     }
 
@@ -409,7 +417,7 @@ export async function POST(req: NextRequest) {
       if (spot) {
         spot.status =
           spot.status === "maintenance" ? "available" : "maintenance";
-        writeDB(state);
+        await saveStateToSupabase(state);
       }
       return NextResponse.json({ success: true, state });
     }
@@ -426,7 +434,7 @@ export async function POST(req: NextRequest) {
           client.status =
             client.creditsRemaining <= 2 ? "pocos_creditos" : "activo";
         }
-        writeDB(state);
+        await saveStateToSupabase(state);
       }
       return NextResponse.json({ success: true, state });
     }
@@ -434,6 +442,7 @@ export async function POST(req: NextRequest) {
     if (action === "reset_demo") {
       const seed = getInitialSeedData();
       writeDB(seed);
+      await saveStateToSupabase(seed);
       return NextResponse.json({ success: true, state: seed });
     }
 

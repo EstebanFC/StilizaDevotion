@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readDB, writeDB } from "@/lib/db";
+import {
+  loadStateFromSupabase,
+  saveStateToSupabase,
+} from "@/lib/supabase-db";
 import { processAIChatTurn } from "@/lib/ai-bot";
 import { sendRealWhatsAppMessage } from "@/lib/whatsapp-sender";
 import { Client } from "@/types/crm";
@@ -77,7 +81,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, note: "Status or non-text event ignored" });
     }
 
-    const state = readDB();
+    const state = await loadStateFromSupabase();
     const cleanDigits = fromPhone.replace(/\D/g, "").slice(-10);
 
     let client = state.clients.find(
@@ -111,10 +115,11 @@ export async function POST(req: NextRequest) {
       client = state.clients[0];
     }
 
-    const { replyMessages } = processAIChatTurn({
+    const { state: updatedState, replyMessages } = processAIChatTurn({
       clientId: client.id,
       userText: textBody,
     });
+    await saveStateToSupabase(updatedState);
 
     const targetPhone = fromPhone || client.phone;
     let lastSendResult: unknown = null;

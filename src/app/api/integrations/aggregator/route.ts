@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDB, syncExternalAggregatorBooking } from "@/lib/db";
+import { syncExternalAggregatorBooking } from "@/lib/db";
+import {
+  loadStateFromSupabase,
+  saveStateToSupabase,
+} from "@/lib/supabase-db";
 import { sendRealWhatsAppMessage } from "@/lib/whatsapp-sender";
 import { ExternalAggregator } from "@/types/crm";
 
-/**
- * Endpoint Universal de Sincronización (Channel Manager) para:
- * - Wellhub (Gympass Partner API Webhook)
- * - TotalPass (Partner Webhook)
- * - FitPass (Inbound Email Bridge / Webhook)
- * - Nessty (Inbound Email Bridge / Webhook)
- *
- * GET /api/integrations/aggregator -> Devuelve el inventario en tiempo real de lugares libres por clase
- * POST /api/integrations/aggregator -> Recibe una reserva externa, bloquea la máquina/tapete y recalcula cupos
- */
 export async function GET() {
-  const state = readDB();
+  const state = await loadStateFromSupabase();
 
   const inventoryFeed = state.sessions.map((s) => {
     const room = state.rooms.find((r) => r.id === s.roomId);
@@ -55,6 +49,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    await loadStateFromSupabase();
     const body = await req.json();
 
     // Detect platform from payload (Wellhub, TotalPass, FitPass, Nessty or email parser subject)
@@ -96,6 +91,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    await saveStateToSupabase(syncRes.state);
 
     if (syncRes.booking && clientPhone) {
       const latestMsg =
