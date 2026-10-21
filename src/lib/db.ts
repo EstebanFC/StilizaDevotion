@@ -407,7 +407,7 @@ export function getInitialSeedData(): CRMDatabaseState {
     {
       id: "cli-1",
       name: "Valeria Montemayor",
-      phone: "+52 987 871 0684",
+      phone: "+52 442 501 8821",
       email: "valeria.m@gmail.com",
       avatarInitials: "VM",
       activePackageName: "Sculpt & Burn 16 Tokens",
@@ -893,7 +893,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       qrToken: "SD-2026-ZIB3-7741",
       clientId: "cli-1",
       clientName: "Valeria Montemayor",
-      clientPhone: "+52 987 871 0684",
+      clientPhone: "+52 442 501 8821",
       sessionId: "ses-dezi-martes-1800",
       sessionTitle: "LOWER BODY · Devotion Zibatá (DEZI)",
       discipline: "hot_pilates",

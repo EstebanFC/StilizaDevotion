@@ -116,6 +116,7 @@ export interface Client {
   creditsTotal: number;
   packageExpiresAt: string;
   status: "activo" | "pocos_creditos" | "sin_creditos";
+  isUnregisteredLead?: boolean;
   totalAttended: number;
   noShowsCount?: number;
   preferredSpot?: string;

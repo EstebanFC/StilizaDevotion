@@ -195,29 +195,47 @@ export async function POST(req: NextRequest) {
         homeBranchName,
       } = body;
       const state = readDB();
-      const pkg =
-        state.packages.find((p) => p.id === packageId) || state.packages[1];
-      const parts = String(name || "Nueva Alumna")
-        .trim()
-        .split(" ");
+      const isZeroPkg = packageId === "none";
+      const pkg = isZeroPkg
+        ? null
+        : state.packages.find((p) => p.id === packageId) || state.packages[1];
+
+      const cleanNameStr = String(name || "Nuevo Alumno(a)").trim();
+      const parts = cleanNameStr.split(" ").filter(Boolean);
       const initials =
         parts.length > 1
           ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-          : parts[0].slice(0, 2).toUpperCase();
+          : cleanNameStr.slice(0, 2).toUpperCase();
+
+      const rawPhone = String(phone || "+52 442 000 0000").trim();
+      const cleanDigits = rawPhone.replace(/\D/g, "").slice(-10);
+
+      // Si ya existía como visitante sin cuenta con ese teléfono, lo actualizamos en lugar de duplicar
+      const existingIdx = state.clients.findIndex(
+        (c) =>
+          cleanDigits.length === 10 &&
+          c.phone.replace(/\D/g, "").endsWith(cleanDigits)
+      );
+
+      const clientId =
+        existingIdx >= 0 ? state.clients[existingIdx].id : `cli-${Date.now()}`;
 
       const newClient: Client = {
-        id: `cli-${Date.now()}`,
-        name: String(name).trim(),
-        phone: String(phone || "+52 442 000 0000").trim(),
-        email: String(email || "alumna@stilizadevotion.com").trim(),
+        id: clientId,
+        name: cleanNameStr,
+        phone: rawPhone,
+        email: String(email || "alumno@stilizadevotion.com").trim(),
         avatarInitials: initials,
-        activePackageName: pkg.name,
-        creditsRemaining: pkg.credits,
-        creditsTotal: pkg.credits,
-        packageExpiresAt: "2026-11-30",
-        status: "activo",
-        totalAttended: 0,
-        noShowsCount: 0,
+        activePackageName: pkg ? pkg.name : "Sin Paquete Activo (0 Tokens)",
+        creditsRemaining: pkg ? pkg.credits : 0,
+        creditsTotal: pkg ? pkg.credits : 0,
+        packageExpiresAt: pkg ? "2026-11-30" : "—",
+        status: pkg && pkg.credits > 0 ? "activo" : "sin_creditos",
+        isUnregisteredLead: false,
+        totalAttended:
+          existingIdx >= 0 ? state.clients[existingIdx].totalAttended : 0,
+        noShowsCount:
+          existingIdx >= 0 ? state.clients[existingIdx].noShowsCount || 0 : 0,
         preferredSpot: preferredSpot || "3",
         homeBranchName:
           homeBranchName || state.branches[0]?.name || "Devotion Zibatá",
@@ -225,17 +243,114 @@ export async function POST(req: NextRequest) {
         joinedAt: new Date().toISOString().split("T")[0],
       };
 
-      state.clients.unshift(newClient);
+      if (existingIdx >= 0) {
+        state.clients[existingIdx] = newClient;
+      } else {
+        state.clients.unshift(newClient);
+      }
+
+      const welcomeText = pkg
+        ? `¡Bienvenido(a) a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta de alumno(a) está activa con **${pkg.name}** (**${pkg.credits} tokens disponibles**). Escríbeme estudio, horario y lugar para agendar tu clase.`
+        : `¡Bienvenido(a) a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta ha sido creada con éxito (0 tokens activos por el momento).`;
+
       state.messages.push({
         id: `msg-welcome-${Date.now()}`,
         clientId: newClient.id,
         sender: "bot",
-        text: `¡Bienvenida a **Stiliza & Devotion**, ${newClient.name.split(" ")[0]}! 🤍 Tu cuenta está activa con **${pkg.name}** (${pkg.credits} tokens).`,
+        text: welcomeText,
         timestamp: "Ahora",
       });
 
       await saveStateToSupabase(state);
       return NextResponse.json({ success: true, client: newClient, state });
+    }
+
+    if (action === "update_client") {
+      const {
+        clientId,
+        name,
+        phone,
+        email,
+        homeBranchName,
+        activePackageName,
+        creditsRemaining,
+        preferredSpot,
+        medicalNotes,
+      } = body;
+      const state = readDB();
+      const client = state.clients.find((c) => c.id === clientId);
+      if (!client) {
+        return NextResponse.json(
+          { success: false, error: "Alumno(a) no encontrado." },
+          { status: 404 }
+        );
+      }
+
+      if (name !== undefined && String(name).trim()) {
+        client.name = String(name).trim();
+        const parts = client.name.split(" ").filter(Boolean);
+        client.avatarInitials =
+          parts.length > 1
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : client.name.slice(0, 2).toUpperCase();
+      }
+      if (phone !== undefined) client.phone = String(phone).trim();
+      if (email !== undefined) client.email = String(email).trim();
+      if (homeBranchName !== undefined)
+        client.homeBranchName = String(homeBranchName).trim();
+      if (activePackageName !== undefined)
+        client.activePackageName = String(activePackageName).trim();
+      if (creditsRemaining !== undefined) {
+        const credits = Math.max(0, Number(creditsRemaining) || 0);
+        client.creditsRemaining = credits;
+        client.creditsTotal = Math.max(client.creditsTotal, credits);
+        client.status =
+          credits === 0
+            ? "sin_creditos"
+            : credits <= 2
+            ? "pocos_creditos"
+            : "activo";
+      }
+      if (preferredSpot !== undefined)
+        client.preferredSpot = String(preferredSpot).trim();
+      if (medicalNotes !== undefined)
+        client.medicalNotes = String(medicalNotes).trim();
+      client.isUnregisteredLead = false;
+
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, client, state });
+    }
+
+    if (action === "delete_client") {
+      const { clientId, phoneDigits } = body;
+      const state = readDB();
+      const targetIds = new Set<string>();
+
+      state.clients.forEach((c) => {
+        if (c.id === clientId) targetIds.add(c.id);
+        if (
+          phoneDigits &&
+          c.phone.replace(/\D/g, "").includes(String(phoneDigits))
+        ) {
+          targetIds.add(c.id);
+        }
+      });
+
+      state.clients = state.clients.filter((c) => !targetIds.has(c.id));
+      state.messages = state.messages.filter(
+        (m) => !targetIds.has(m.clientId)
+      );
+      state.bookings = state.bookings.filter(
+        (b) =>
+          !targetIds.has(b.clientId) &&
+          !(
+            phoneDigits &&
+            b.clientPhone.replace(/\D/g, "").includes(String(phoneDigits))
+          )
+      );
+
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, state });
     }
 
     if (action === "create_session") {

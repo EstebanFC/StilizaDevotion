@@ -282,7 +282,64 @@ export function processAIChatTurn(params: {
   state.messages.push(clientMsg);
 
   const lower = params.userText.toLowerCase().trim();
-  const firstName = client.name.split(" ")[0];
+  const firstName = client.name.replace(" (Sin Cuenta)", "").split(" ")[0];
+
+  // FLUJO CUANDO EL USUARIO ESCRIBE SIN TENER UNA CUENTA REGISTRADA
+  if (client.isUnregisteredLead) {
+    // ¿Está enviando el comando "REGISTRARME Nombre Correo"?
+    const regMatch = params.userText
+      .trim()
+      .match(/^(?:registrarme|registro|alta|crear cuenta)\s+(.+)$/i);
+    if (regMatch) {
+      const rest = regMatch[1].trim();
+      const emailMatch = rest.match(/([^\s@]+@[^\s@]+\.[^\s@]+)/);
+      const email = emailMatch ? emailMatch[1] : "alumno@stilizadevotion.com";
+      const cleanName = rest
+        .replace(emailMatch ? emailMatch[0] : "", "")
+        .trim();
+      const finalName =
+        cleanName || client.name.replace(" (Sin Cuenta)", "").trim();
+      const parts = finalName.split(" ").filter(Boolean);
+      const initials =
+        parts.length > 1
+          ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+          : finalName.slice(0, 2).toUpperCase();
+
+      client.name = finalName;
+      client.email = email;
+      client.avatarInitials = initials;
+      client.isUnregisteredLead = false;
+      client.activePackageName = "Cuenta Nueva (Sin Paquete Activo)";
+      client.creditsRemaining = 0;
+      client.creditsTotal = 0;
+      client.status = "sin_creditos";
+
+      const regReply: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `✅ ¡Listo, **${client.name}**! Hemos creado tu cuenta de alumno(a) en **Stiliza & Devotion** vinculada al número **${client.phone}** (${client.email}).\n\nActualmente tienes **0 tokens disponibles**. Para poder agendar tu lugar y recibir tu código QR:\n• Adquiere tu paquete de tokens en el **Kiosco** de tu sucursal\n• O solicita en Administración que activen tu paquete (**Single Drop-In 1 Token**, **8 Tokens**, **16 Tokens** o **Black Pass 30**).`,
+        timestamp: nowTime,
+      };
+      state.messages.push(regReply);
+      writeDB(state);
+      return { state, replyMessages: [regReply] };
+    }
+
+    const unregisteredReply: ChatMessage = {
+      id: `msg-${Date.now()}-bot`,
+      clientId: client.id,
+      sender: "bot",
+      text: `¡Hola! 👋 Bienvenido(a) a **Stiliza & Devotion**.\n\nVemos que tu número (**${client.phone}**) **aún no tiene una cuenta de alumno(a) registrada** en nuestro sistema, por lo que todavía no podemos procesar reservas.\n\nPara crear tu cuenta tienes 2 opciones:\n1️⃣ **Por WhatsApp**: Respóndeme con la palabra **REGISTRARME** seguida de tu Nombre Completo y Correo (ejemplo: *REGISTRARME Esteban Flores esteban@correo.com*).\n2️⃣ **En Estudio / Admin**: Solicita tu alta en recepción o en el Kiosco de tu sucursal para activar tu cuenta y tus tokens.`,
+      timestamp: nowTime,
+      suggestedSpots: [
+        "REGISTRARME Esteban Flores esteban@gmail.com",
+      ],
+    };
+    state.messages.push(unregisteredReply);
+    writeDB(state);
+    return { state, replyMessages: [unregisteredReply] };
+  }
 
   // Si pide su código QR activo
   if (

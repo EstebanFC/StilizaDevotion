@@ -89,21 +89,24 @@ export async function POST(req: NextRequest) {
     );
 
     if (!client && fromPhone) {
-      const displayName = profileName || `Alumna WhatsApp (${cleanDigits})`;
+      const displayName = profileName
+        ? `${profileName} (Sin Cuenta)`
+        : `Visitante WhatsApp (${cleanDigits})`;
       const newClient: Client = {
         id: `cli-wa-${Date.now()}`,
         name: displayName,
         phone: `+${fromPhone.replace(/\D/g, "")}`,
-        email: "whatsapp@stilizadevotion.com",
-        avatarInitials: displayName.slice(0, 2).toUpperCase(),
-        activePackageName: "Devotion & Stiliza 8 Tokens",
-        creditsRemaining: 8,
-        creditsTotal: 8,
-        packageExpiresAt: "2026-11-30",
-        status: "activo",
+        email: "sin-registrar@whatsapp.mx",
+        avatarInitials: (profileName || "WA").slice(0, 2).toUpperCase(),
+        activePackageName: "Sin Cuenta Registrada",
+        creditsRemaining: 0,
+        creditsTotal: 0,
+        packageExpiresAt: "—",
+        status: "sin_creditos",
+        isUnregisteredLead: true,
         totalAttended: 0,
-        preferredSpot: "3",
-        homeBranchName: "Devotion Zibatá",
+        preferredSpot: "—",
+        homeBranchName: "Por definir",
         joinedAt: new Date().toISOString().split("T")[0],
       };
       state.clients.unshift(newClient);

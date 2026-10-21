@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   ClassSession,
+  Client,
   CRMDatabaseState,
   DayOfWeek,
   ExternalAggregator,
@@ -44,6 +45,18 @@ interface AdminCRMDashboardProps {
     medicalNotes: string;
     homeBranchName?: string;
   }) => Promise<void>;
+  onUpdateClient: (data: {
+    clientId: string;
+    name: string;
+    phone: string;
+    email: string;
+    homeBranchName: string;
+    activePackageName: string;
+    creditsRemaining: number;
+    preferredSpot: string;
+    medicalNotes: string;
+  }) => Promise<void>;
+  onDeleteClient: (clientId: string) => Promise<void>;
   onCreateSession: (data: {
     title: string;
     roomId: string;
@@ -108,6 +121,8 @@ interface AdminCRMDashboardProps {
 export function AdminCRMDashboard({
   db,
   onCreateClient,
+  onUpdateClient,
+  onDeleteClient,
   onCreateSession,
   onUpdateSession,
   onDeleteSession,
@@ -146,14 +161,20 @@ export function AdminCRMDashboard({
     null
   );
 
+  // Edit Client Inline Modal State (CRUD Alumnos)
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+
   // New Client state
   const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("+52 55 ");
+  const [newPhone, setNewPhone] = useState("+52 ");
   const [newEmail, setNewEmail] = useState("");
   const [newPackageId, setNewPackageId] = useState(
     db.packages[1]?.id || "pkg-devotion-8"
   );
-  const [newPreferredSpot, setNewPreferredSpot] = useState("R-04");
+  const [newHomeBranch, setNewHomeBranch] = useState(
+    db.branches[0]?.name || "Stiliza San Isidro"
+  );
+  const [newPreferredSpot, setNewPreferredSpot] = useState("3");
   const [newMedicalNotes, setNewMedicalNotes] = useState("");
 
   // New Session state
@@ -513,7 +534,7 @@ export function AdminCRMDashboard({
             className="inline-flex items-center gap-2 rounded-xl bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 font-bold text-xs px-4 py-2.5 transition"
           >
             <UserPlus className="h-4 w-4 text-amber-700" />
-            + Nueva Alumna
+            + Nuevo Alumno(a)
           </button>
         </div>
 
@@ -852,7 +873,7 @@ export function AdminCRMDashboard({
         </form>
       )}
 
-      {/* DRAWER: Nueva Alumna */}
+      {/* DRAWER: Nuevo Alumno(a) */}
       {activeDrawer === "new_client" && (
         <form
           onSubmit={async (e) => {
@@ -865,49 +886,97 @@ export function AdminCRMDashboard({
               packageId: newPackageId,
               preferredSpot: newPreferredSpot,
               medicalNotes: newMedicalNotes,
+              homeBranchName: newHomeBranch,
             });
             setNewName("");
+            setNewPhone("+52 ");
+            setNewEmail("");
+            setNewMedicalNotes("");
             setActiveDrawer(null);
           }}
           className="rounded-3xl bg-white border border-stone-300 p-6 shadow-md space-y-4"
         >
-          <h3 className="text-base font-bold text-stone-900">
-            Registrar Nueva Alumna + Paquete de Tokens
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-stone-900">
+              Dar de Alta Nuevo Alumno(a) · CRUD Clientes
+            </h3>
+            <button
+              type="button"
+              onClick={() => setActiveDrawer(null)}
+              className="text-xs text-stone-500"
+            >
+              Cerrar ✕
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <input
               type="text"
               required
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nombre Completo"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              placeholder="Nombre Completo (ej. Esteban Flores)"
+              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-semibold"
             />
             <input
               type="text"
               required
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="+52 55 ..."
+              placeholder="WhatsApp (ej. +52 987 871 0684)"
+              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono"
+            />
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="Correo electrónico"
               className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
             />
             <select
-              value={newPackageId}
-              onChange={(e) => setNewPackageId(e.target.value)}
+              value={newHomeBranch}
+              onChange={(e) => setNewHomeBranch(e.target.value)}
               className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
             >
+              {db.branches.map((b) => (
+                <option key={b.id} value={b.name}>
+                  Sucursal Base: {b.name} ({b.code})
+                </option>
+              ))}
+            </select>
+            <select
+              value={newPackageId}
+              onChange={(e) => setNewPackageId(e.target.value)}
+              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+            >
+              <option value="none">Sin Paquete Activo (0 tokens)</option>
               {db.packages.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.credits} tokens)
                 </option>
               ))}
             </select>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newPreferredSpot}
+                onChange={(e) => setNewPreferredSpot(e.target.value)}
+                placeholder="Lugar fav (1-12)"
+                className="w-28 rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono"
+              />
+              <input
+                type="text"
+                value={newMedicalNotes}
+                onChange={(e) => setNewMedicalNotes(e.target.value)}
+                placeholder="Notas médicas u observaciones"
+                className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              />
+            </div>
           </div>
           <button
             type="submit"
             className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2.5"
           >
-            Guardar Alumna
+            Guardar Alumno(a) en CRM y Supabase
           </button>
         </form>
       )}
@@ -1389,43 +1458,225 @@ export function AdminCRMDashboard({
       </div>
 
       {/* =====================================================================
-          6. DIRECTORIO DE ALUMNAS Y CONTROL DE TOKENS
+          6. DIRECTORIO CRUD DE ALUMNOS / CLIENTES Y CONTROL DE TOKENS
          ===================================================================== */}
-      <div className="rounded-3xl bg-white border border-stone-200/90 p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+      <div className="rounded-3xl bg-white border border-stone-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
               <Users className="h-5 w-5 text-stone-700" />
-              Directorio CRM de Alumnas & Control de Tokens
+              Directorio CRUD de Alumnos & Control de Tokens ({db.clients.length})
             </h3>
             <p className="text-xs text-stone-500">
-              Administra paquetes, lugar favorito, notas médicas y chat directo
-              con el Bot de WhatsApp
+              Crea, edita o elimina perfiles de alumnos (hombres y mujeres), ajusta sus tokens, lugar favorito, notas médicas y abre su chat de WhatsApp
             </p>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="h-4 w-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={clientSearch}
-              onChange={(e) => setClientSearch(e.target.value)}
-              placeholder="Buscar alumna o WhatsApp..."
-              className="w-full rounded-xl bg-[#FAF7F2] border border-stone-300 pl-9 pr-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-700"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setActiveDrawer(
+                  activeDrawer === "new_client" ? null : "new_client"
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-200 font-bold text-xs px-3.5 py-2 transition"
+            >
+              <UserPlus className="h-3.5 w-3.5" /> + Nuevo Alumno(a)
+            </button>
+            <div className="relative w-full sm:w-64">
+              <Search className="h-4 w-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                placeholder="Buscar alumno(a) o WhatsApp..."
+                className="w-full rounded-xl bg-[#FAF7F2] border border-stone-300 pl-9 pr-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-700"
+              />
+            </div>
           </div>
         </div>
+
+        {/* FORMULARIO INLINE PARA EDITAR ALUMNO(A) (UPDATE DEL CRUD) */}
+        {editingClient && (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              await onUpdateClient({
+                clientId: editingClient.id,
+                name: editingClient.name,
+                phone: editingClient.phone,
+                email: editingClient.email,
+                homeBranchName: editingClient.homeBranchName || "Devotion Zibatá",
+                activePackageName: editingClient.activePackageName,
+                creditsRemaining: editingClient.creditsRemaining,
+                preferredSpot: editingClient.preferredSpot || "3",
+                medicalNotes: editingClient.medicalNotes || "",
+              });
+              setEditingClient(null);
+            }}
+            className="rounded-2xl bg-[#FAF7F2] border-2 border-amber-400 p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-stone-900">
+                ✏️ Editando Alumno(a): {editingClient.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditingClient(null)}
+                className="text-xs text-stone-500"
+              >
+                Cancelar ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingClient.name}
+                  onChange={(e) =>
+                    setEditingClient({ ...editingClient, name: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Teléfono WhatsApp
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingClient.phone}
+                  onChange={(e) =>
+                    setEditingClient({ ...editingClient, phone: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="text"
+                  value={editingClient.email}
+                  onChange={(e) =>
+                    setEditingClient({ ...editingClient, email: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Sucursal Base
+                </label>
+                <select
+                  value={editingClient.homeBranchName || "Devotion Zibatá"}
+                  onChange={(e) =>
+                    setEditingClient({
+                      ...editingClient,
+                      homeBranchName: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                >
+                  {db.branches.map((b) => (
+                    <option key={b.id} value={b.name}>
+                      {b.name} ({b.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Paquete Activo
+                </label>
+                <input
+                  type="text"
+                  value={editingClient.activePackageName}
+                  onChange={(e) =>
+                    setEditingClient({
+                      ...editingClient,
+                      activePackageName: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Tokens Disponibles
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editingClient.creditsRemaining}
+                  onChange={(e) =>
+                    setEditingClient({
+                      ...editingClient,
+                      creditsRemaining: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-extrabold bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Lugar Favorito (1-12)
+                </label>
+                <input
+                  type="text"
+                  value={editingClient.preferredSpot || ""}
+                  onChange={(e) =>
+                    setEditingClient({
+                      ...editingClient,
+                      preferredSpot: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                  Notas Médicas / Lesiones
+                </label>
+                <input
+                  type="text"
+                  value={editingClient.medicalNotes || ""}
+                  onChange={(e) =>
+                    setEditingClient({
+                      ...editingClient,
+                      medicalNotes: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2"
+            >
+              Guardar Cambios del Alumno(a)
+            </button>
+          </form>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-stone-200 text-[11px] uppercase tracking-wider text-stone-400">
-                <th className="py-3 px-3">Alumna</th>
+                <th className="py-3 px-3">Alumno(a)</th>
                 <th className="py-3 px-3">Sucursal Base / WhatsApp</th>
                 <th className="py-3 px-3">Paquete Activo</th>
                 <th className="py-3 px-3">Tokens</th>
                 <th className="py-3 px-3">Lugar Fav / Notas</th>
-                <th className="py-3 px-3 text-right">Acciones Rápidas</th>
+                <th className="py-3 px-3 text-right">Acciones CRUD</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 text-xs">
@@ -1437,9 +1688,16 @@ export function AdminCRMDashboard({
                         {client.avatarInitials}
                       </div>
                       <div>
-                        <p className="font-bold text-stone-900">
-                          {client.name}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-stone-900">
+                            {client.name}
+                          </p>
+                          {client.isUnregisteredLead && (
+                            <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5">
+                              Sin cuenta
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-stone-400">
                           {client.totalAttended} asistencias ·{" "}
                           {client.noShowsCount || 0} faltas
@@ -1449,7 +1707,7 @@ export function AdminCRMDashboard({
                   </td>
                   <td className="py-3.5 px-3">
                     <p className="font-semibold text-stone-800">
-                      {client.homeBranchName || "Stiliza · Polanco"}
+                      {client.homeBranchName || "Devotion Zibatá"}
                     </p>
                     <p className="font-mono text-[11px] text-stone-500">
                       {client.phone}
@@ -1486,15 +1744,22 @@ export function AdminCRMDashboard({
                       </p>
                     )}
                   </td>
-                  <td className="py-3.5 px-3 text-right space-x-2">
+                  <td className="py-3.5 px-3 text-right space-x-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingClient(client)}
+                      className="inline-flex items-center gap-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold px-2.5 py-1.5 transition"
+                    >
+                      <Edit3 className="h-3 w-3" /> Editar
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
                         onRechargeClient(client.id, "pkg-devotion-8")
                       }
-                      className="inline-flex items-center gap-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold px-2.5 py-1.5 transition"
+                      className="inline-flex items-center gap-1 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-2.5 py-1.5 transition"
                     >
-                      <Plus className="h-3 w-3" /> 8 Tokens
+                      <Plus className="h-3 w-3" /> +8 Tokens
                     </button>
                     <button
                       type="button"
@@ -1502,6 +1767,14 @@ export function AdminCRMDashboard({
                       className="inline-flex items-center gap-1 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold px-2.5 py-1.5 transition"
                     >
                       <Bot className="h-3.5 w-3.5" /> Chat IA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteClient(client.id)}
+                      title="Eliminar alumno(a) del CRM y base de datos"
+                      className="inline-flex items-center rounded-xl bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5 transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </td>
                 </tr>

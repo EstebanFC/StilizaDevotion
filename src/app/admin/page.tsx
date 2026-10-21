@@ -281,7 +281,7 @@ export default function AdminOnlyPortalPage() {
                 }`}
               >
                 <CalendarCheck className="h-4 w-4" />
-                4. Portal Web Alumnas
+                4. Portal Web Alumnos
               </button>
             </nav>
 
@@ -306,6 +306,24 @@ export default function AdminOnlyPortalPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "create_client", ...payload }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+            }}
+            onUpdateClient={async (payload) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "update_client", ...payload }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+            }}
+            onDeleteClient={async (clientId) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "delete_client", clientId }),
               });
               const data = await res.json();
               if (data.state) setDb(data.state);

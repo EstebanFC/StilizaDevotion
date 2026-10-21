@@ -117,6 +117,14 @@ async function syncRelationalTables(state: CRMDatabaseState): Promise<void> {
       );
     }
 
+    if (state.clients.length > 0) {
+      const clientIds = state.clients.map((c) => c.id);
+      await client.query(
+        `DELETE FROM stiliza_clients WHERE NOT (id = ANY($1::text[]))`,
+        [clientIds]
+      );
+    }
+
     for (const cl of state.clients) {
       await client.query(
         `INSERT INTO stiliza_clients (id, name, phone, email, credits_remaining, active_package, home_branch, data, updated_at)
@@ -223,7 +231,12 @@ export async function loadStateFromSupabase(): Promise<CRMDatabaseState> {
       const seed = getInitialSeedData();
       let updated = false;
 
-      // Sincronizar códigos oficiales de sucursal (STSI, STJU, STCA, DEZI, DEJU, DECA)
+      // Desvincular el teléfono 9878710684 de la cuenta demo cli-1 si aún lo tenía asignado
+      const demoCli1 = state.clients.find((c) => c.id === "cli-1");
+      if (demoCli1 && demoCli1.phone.replace(/\D/g, "").includes("9878710684")) {
+        demoCli1.phone = "+52 442 501 8821";
+        updated = true;
+      }
       state.branches = seed.branches;
 
       // Si el estado guardado aún no tiene la matriz oficial de 125 clases del JSON (ses-stsi-lunes-0715),
