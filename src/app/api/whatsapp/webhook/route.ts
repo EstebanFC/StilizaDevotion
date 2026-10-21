@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
     hasSupabaseAccessToken: Boolean(aiMeta?.metaAccessToken),
     phoneNumberIdConfigured:
       aiMeta?.metaPhoneNumberId ||
-      process.env.WHATSAPP_PHONE_NUMBER_ID ||
+      (process.env.WHATSAPP_PHONE_NUMBER_ID === "1414880558369692"
+        ? "1391915687338824"
+        : process.env.WHATSAPP_PHONE_NUMBER_ID) ||
       "1391915687338824",
     lastWebhookDiagnostics: aiMeta?.lastWebhookDiagnostics || null,
   });

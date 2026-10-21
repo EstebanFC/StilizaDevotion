@@ -110,25 +110,49 @@ export async function POST(req: NextRequest) {
     if (action === "save_meta_credentials") {
       const { accessToken, phoneNumberId, testRecipientPhone } = body;
       const state = readDB();
-      (
-        state.aiSettings as unknown as {
-          metaAccessToken?: string;
-          metaPhoneNumberId?: string;
-        }
-      ).metaAccessToken = String(accessToken || "").trim();
-      (
-        state.aiSettings as unknown as {
-          metaAccessToken?: string;
-          metaPhoneNumberId?: string;
-        }
-      ).metaPhoneNumberId = String(
+      const cleanToken = String(
+        accessToken || process.env.WHATSAPP_ACCESS_TOKEN || ""
+      ).trim();
+      const cleanPhoneId = String(
         phoneNumberId || "1391915687338824"
       ).trim();
 
-      if (testRecipientPhone && state.clients[0]) {
-        state.clients[0].phone = String(testRecipientPhone).trim();
-      }
+      (
+        state.aiSettings as unknown as {
+          metaAccessToken?: string;
+          metaPhoneNumberId?: string;
+        }
+      ).metaAccessToken = cleanToken;
+      (
+        state.aiSettings as unknown as {
+          metaAccessToken?: string;
+          metaPhoneNumberId?: string;
+        }
+      ).metaPhoneNumberId = cleanPhoneId;
+
       await saveStateToSupabase(state);
+
+      // Intentar registrar/activar el número en Meta Cloud API (por si está en estatus "Pendiente" en WhatsApp Manager)
+      if (cleanToken) {
+        try {
+          await fetch(
+            `https://graph.facebook.com/v22.0/${cleanPhoneId}/register`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${cleanToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                pin: "123456",
+              }),
+            }
+          );
+        } catch {
+          // Ignorar si ya estaba registrado
+        }
+      }
 
       const sampleBooking = state.bookings[0];
       const sendRes = await sendRealWhatsAppMessage({
