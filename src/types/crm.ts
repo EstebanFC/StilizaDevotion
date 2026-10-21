@@ -23,6 +23,7 @@ export interface AggregatorConnection {
 
 export interface Branch {
   id: string;
+  code?: string; // STSI, STJU, STCA, DEZI, DEJU, DECA
   brand: StudioBrand;
   name: string;
   address: string;

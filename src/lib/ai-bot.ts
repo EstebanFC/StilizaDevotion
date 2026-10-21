@@ -1,8 +1,71 @@
 import { createBookingTransaction, readDB, writeDB } from "@/lib/db";
-import { ChatMessage, ClassSession, CRMDatabaseState } from "@/types/crm";
+import {
+  ChatMessage,
+  ClassSession,
+  CRMDatabaseState,
+  DayOfWeek,
+} from "@/types/crm";
 
 /**
- * Extrae la sucursal mencionada por el usuario en el texto.
+ * Obtiene el día de la semana actual en horario de México (o Martes por defecto).
+ */
+function getCurrentDayOfWeekMX(): DayOfWeek {
+  const days: DayOfWeek[] = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ];
+  const now = new Date();
+  return days[now.getDay()] || "Martes";
+}
+
+function getNextDayOfWeek(current: DayOfWeek): DayOfWeek {
+  const order: DayOfWeek[] = [
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+    "Domingo",
+  ];
+  const idx = order.indexOf(current);
+  return order[(idx + 1) % order.length];
+}
+
+/**
+ * Extrae el día de la semana si la alumna lo menciona ("lunes", "martes", "miércoles", "hoy", "mañana", etc.)
+ */
+function detectDayOfWeekFromText(text: string): DayOfWeek | null {
+  const lower = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (/\blunes\b/.test(lower)) return "Lunes";
+  if (/\bmartes\b/.test(lower)) return "Martes";
+  if (/\bmiercoles\b/.test(lower)) return "Miércoles";
+  if (/\bjueves\b/.test(lower)) return "Jueves";
+  if (/\bviernes\b/.test(lower)) return "Viernes";
+  if (/\bsabado\b/.test(lower)) return "Sábado";
+  if (/\bdomingo\b/.test(lower)) return "Domingo";
+  if (/\bhoy\b/.test(lower)) return getCurrentDayOfWeekMX();
+  if (
+    /\bmanana\b/.test(lower) &&
+    !/\bde la manana\b/.test(lower) &&
+    !/\ben la manana\b/.test(lower)
+  ) {
+    return getNextDayOfWeek(getCurrentDayOfWeekMX());
+  }
+  return null;
+}
+
+/**
+ * Extrae la sucursal mencionada por nombre o por sus siglas oficiales (STSI, STJU, STCA, DEZI, DEJU, DECA).
  */
 function detectBranchIdFromText(
   text: string,
@@ -13,6 +76,15 @@ function detectBranchIdFromText(
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+  // Siglas oficiales
+  if (/\bstsi\b/.test(lower)) return "br-stiliza-san-isidro";
+  if (/\bstju\b/.test(lower)) return "br-stiliza-juriquilla";
+  if (/\bstca\b/.test(lower)) return "br-stiliza-campanario";
+  if (/\bdezi\b/.test(lower)) return "br-devotion-zibata";
+  if (/\bdeju\b/.test(lower)) return "br-devotion-juriquilla";
+  if (/\bdeca\b/.test(lower)) return "br-devotion-campanario";
+
+  // Nombres completos o parciales
   if (lower.includes("san isidro")) return "br-stiliza-san-isidro";
   if (lower.includes("zibata")) return "br-devotion-zibata";
   if (lower.includes("stiliza juriquilla")) return "br-stiliza-juriquilla";
@@ -20,10 +92,8 @@ function detectBranchIdFromText(
   if (lower.includes("stiliza campanario")) return "br-stiliza-campanario";
   if (lower.includes("devotion campanario")) return "br-devotion-campanario";
 
-  // Si solo dice "campanario", por defecto usamos Devotion Campanario (ya que Stiliza Campanario tiene 0 lugares)
   if (lower.includes("campanario")) return "br-devotion-campanario";
 
-  // Si solo dice "juriquilla": si menciona reformer/stiliza -> Stiliza Juriquilla, si menciona hot/devotion o general -> Devotion Juriquilla
   if (lower.includes("juriquilla")) {
     if (lower.includes("stiliza") || lower.includes("reformer")) {
       return "br-stiliza-juriquilla";
@@ -43,9 +113,8 @@ function detectBranchIdFromText(
 }
 
 /**
- * Extrae el horario del mensaje (ej. "a las 6pm", "6 pm", "18:00", "7am", "a las 8 de la mañana")
- * y devuelve { startTime: "18:00", textWithoutTime: "..." } para que el número de la hora
- * NUNCA se confunda con el número de lugar/máquina.
+ * Extrae el horario del mensaje (ej. "7:15am", "a las 6pm", "6 pm", "18:00", "7am", "a las 8:15")
+ * y devuelve { startTime, textWithoutTime } para que el número de la hora NUNCA se confunda con el lugar.
  */
 function extractTimeAndStrip(text: string): {
   startTime: string | null;
@@ -54,7 +123,7 @@ function extractTimeAndStrip(text: string): {
   let working = text;
   let detectedTime: string | null = null;
 
-  // 1. Formato explícito con am/pm o hrs: "a las 6pm", "6:30 pm", "7am", "18:00 hrs", "18:00"
+  // 1. Formato con am/pm o hrs: "a las 7:15am", "6pm", "8:15 am", "18:00 hrs"
   const timeRegex1 =
     /(?:a\s+las\s+)?\b(\d{1,2})(?::(\d{2}))?\s*(am|a\.m\.|pm|p\.m\.|hrs|horas|de la ma[ñn]ana|de la tarde|de la noche)\b/i;
   const m1 = working.match(timeRegex1);
@@ -82,14 +151,16 @@ function extractTimeAndStrip(text: string): {
     return { startTime: detectedTime, textWithoutTime: working };
   }
 
-  // 2. Formato 24h con dos puntos: "18:00", "07:00", "19:30"
+  // 2. Formato con dos puntos: "7:15", "08:15", "18:00", "6:15"
   const timeRegex2 = /(?:a\s+las\s+)?\b([012]?\d):([0-5]\d)\b/i;
   const m2 = working.match(timeRegex2);
   if (m2) {
     let hour = Number(m2[1]);
     const mins = m2[2];
-    // Si pone "6:00" y en los estudios solo hay 6pm (18:00) y 7am-10am:
-    if (hour === 6) hour = 18;
+    // Si pone "6:00" sin AM/PM, en la tarde es 18:00 (las de la mañana son 06:15)
+    if (hour === 6 && mins === "00") hour = 18;
+    if (hour === 7 && mins === "00") hour = 19;
+    if (hour === 8 && mins === "00") hour = 20;
     detectedTime = `${String(hour).padStart(2, "0")}:${mins}`;
     working = working.replace(m2[0], " ");
     return { startTime: detectedTime, textWithoutTime: working };
@@ -100,7 +171,6 @@ function extractTimeAndStrip(text: string): {
   const m3 = working.match(timeRegex3);
   if (m3) {
     let hour = Number(m3[1]);
-    // Horarios de sucursal: 7am a 10am y 6pm (18:00) a 8pm (20:00)
     if (hour === 6) hour = 18;
     detectedTime = `${String(hour).padStart(2, "0")}:00`;
     working = working.replace(m3[0], " ");
@@ -112,10 +182,8 @@ function extractTimeAndStrip(text: string): {
 
 /**
  * Extrae el número de lugar (1 al 12) del texto libre de horas.
- * Soporta: "en el 3", "el 3", "lugar 3", "máquina 3", "tapete 3", "#3", o simplemente "3".
  */
 function extractSpotFromCleanText(cleanText: string): string | null {
-  // 1. Con preposición o sustantivo: "en el 3", "lugar 4", "el 2", "la 5", "#3"
   const m1 = cleanText.match(
     /(?:en\s+el|en\s+la|lugar|m[aá]quina|tapete|reformer|mat|n[uú]mero|numero|#|\bel|\bla)\s*#?(\d{1,2})\b/i
   );
@@ -124,13 +192,11 @@ function extractSpotFromCleanText(cleanText: string): string | null {
     if (num >= 1 && num <= 16) return String(num);
   }
 
-  // 2. Código tipo R-03 o M-04
   const m2 = cleanText.match(/\b(?:RB|R|M)-?(\d{1,2})\b/i);
   if (m2) {
     return String(Number(m2[1]));
   }
 
-  // 3. Si el mensaje completo es únicamente el número (ej. el usuario responde "3")
   const m3 = cleanText.trim().match(/^#?(\d{1,2})$/);
   if (m3) {
     const num = Number(m3[1]);
@@ -140,54 +206,52 @@ function extractSpotFromCleanText(cleanText: string): string | null {
   return null;
 }
 
+function format12h(startTime: string): string {
+  const [hStr, mStr] = startTime.split(":");
+  const h = Number(hStr);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, "0")}:${mStr} ${ampm}`;
+}
+
 /**
- * Busca la sesión correspondiente a (branchId, startTime) o la crea dinámicamente
- * dentro de los horarios válidos de sucursal (07:00 a 10:00 y 18:00 a 20:00).
+ * Busca la clase oficial en la sucursal y día indicados.
+ * Si la alumna dijo "07:00" o "7am", pero la clase matutina oficial es "07:15", la empareja inteligentemente.
  */
-function findOrEnsureSession(
+function findOfficialSessionForBranchDayTime(
   state: CRMDatabaseState,
   branchId: string,
-  startTime: string
+  dayOfWeek: DayOfWeek,
+  requestedTime: string
 ): ClassSession | null {
-  const existing = state.sessions.find(
-    (s) => s.branchId === branchId && s.startTime === startTime
+  const daySessions = state.sessions.filter(
+    (s) =>
+      s.branchId === branchId &&
+      (s.dayOfWeek || "Martes").toLowerCase() === dayOfWeek.toLowerCase()
   );
-  if (existing) return existing;
 
-  const branch = state.branches.find((b) => b.id === branchId);
-  const room = state.rooms.find((r) => r.branchId === branchId);
-  if (!branch || !room || room.spots.length === 0) return null;
+  // 1. Coincidencia exacta (ej. "18:00" o "07:15")
+  const exact = daySessions.find((s) => s.startTime === requestedTime);
+  if (exact) return exact;
 
-  const defaultCoach =
-    state.coaches.find((c) => c.specialty === room.discipline)?.name ||
-    state.coaches[0]?.name ||
-    "Coach Stiliza";
+  // 2. Si pidió hora cerrada en la mañana (ej. "06:00", "07:00", "08:00", "09:00", "10:00") y la clase es ":15"
+  const reqHour = requestedTime.split(":")[0];
+  const withQuarter = daySessions.find((s) => s.startTime === `${reqHour}:15`);
+  if (withQuarter) return withQuarter;
 
-  const newSession: ClassSession = {
-    id: `ses-${branchId}-${startTime.replace(":", "")}`,
-    title:
-      room.discipline === "hot_pilates"
-        ? `Hot Pilates 38°C · ${branch.name.replace("Devotion ", "")}`
-        : `Pilates Reformer · ${branch.name.replace("Stiliza ", "")}`,
-    discipline: room.discipline,
-    branchId: branch.id,
-    branchName: branch.name,
-    brand: branch.brand,
-    roomId: room.id,
-    roomName: room.name,
-    instructor: defaultCoach,
-    instructorAvatar: "CS",
-    date: "2026-10-20",
-    dayOfWeek: "Martes",
-    startTime,
-    durationMinutes: 50,
-    level: "Todos los niveles",
-    intensity: room.discipline === "hot_pilates" ? "Intensa 🔥" : "Alta",
-  };
+  // 3. Si dijo "07:00" sin AM/PM pero quería "19:00" (7:00 PM) o viceversa
+  const hourNum = Number(reqHour);
+  if (hourNum >= 6 && hourNum <= 10) {
+    const pmHour = String(hourNum + 12).padStart(2, "0");
+    const pmMatch = daySessions.find((s) => s.startTime.startsWith(pmHour));
+    if (pmMatch) return pmMatch;
+  } else if (hourNum >= 18 && hourNum <= 20) {
+    const amHour = String(hourNum - 12).padStart(2, "0");
+    const amMatch = daySessions.find((s) => s.startTime.startsWith(amHour));
+    if (amMatch) return amMatch;
+  }
 
-  state.sessions.push(newSession);
-  writeDB(state);
-  return newSession;
+  return null;
 }
 
 export function processAIChatTurn(params: {
@@ -243,12 +307,12 @@ export function processAIChatTurn(params: {
           id: `msg-${Date.now()}-bot`,
           clientId: client.id,
           sender: "bot",
-          text: `Hola ${firstName}, por el momento no tienes una reserva pendiente de check-in. Dime en qué sucursal, horario (7am–10am o 6pm–8pm) y número de lugar quieres agendar hoy:`,
+          text: `Hola ${firstName}, por el momento no tienes una reserva pendiente de check-in. Dime en qué sucursal, día, horario y número de lugar quieres agendar:`,
           timestamp: nowTime,
           suggestedSpots: [
             "Stiliza San Isidro a las 6pm en el 3",
-            "Devotion Zibatá a las 7pm en el 4",
-            "Devotion Juriquilla a las 8am en el 5",
+            "Devotion Zibatá a las 7:15am en el 4",
+            "Devotion Juriquilla a las 8:15am en el 5",
           ],
         };
     state.messages.push(botReply);
@@ -256,125 +320,142 @@ export function processAIChatTurn(params: {
     return { state, replyMessages: [botReply] };
   }
 
-  // 1. Extraer sucursal, hora y lugar del mensaje actual
+  // Extraer Sucursal, Día, Hora y Lugar del mensaje
   const detectedBranchId = detectBranchIdFromText(params.userText, state);
+  const detectedDay = detectDayOfWeekFromText(params.userText);
   const { startTime: detectedTime, textWithoutTime } = extractTimeAndStrip(
     params.userText
   );
   const detectedSpot = extractSpotFromCleanText(textWithoutTime);
 
-  // Combinar con el borrador conversacional previo (para que no vuelva a preguntar lo que ya dijo la alumna)
   const draft = client.conversationDraft || {};
   const finalBranchId = detectedBranchId || draft.branchId;
+  const finalDay: DayOfWeek =
+    detectedDay || draft.dayOfWeek || getCurrentDayOfWeekMX();
   const finalTime = detectedTime || draft.startTime;
   const finalSpot = detectedSpot;
 
   client.conversationDraft = {
     branchId: finalBranchId,
+    dayOfWeek: finalDay,
     startTime: finalTime,
   };
   writeDB(state);
 
-  // CASO A: ¡Ya tenemos Sucursal + Hora + Lugar! (Ej. "Stiliza San Isidro a las 6pm en el 3" o en pasos)
+  // CASO A: Tenemos Sucursal + Hora + Lugar
   if (finalBranchId && finalTime && finalSpot) {
-    const targetSession = findOrEnsureSession(state, finalBranchId, finalTime);
-    if (targetSession) {
-      const tx = createBookingTransaction({
-        clientId: client.id,
-        sessionId: targetSession.id,
-        spotId: finalSpot,
-        bookedVia: "whatsapp_bot",
-      });
-
-      if (tx.success && tx.booking) {
-        // Limpiar borrador al concretar la reserva
-        const updatedClient = tx.state.clients.find((c) => c.id === client.id);
-        if (updatedClient) {
-          updatedClient.conversationDraft = {};
-          writeDB(tx.state);
-        }
-        const latestMsg = tx.state.messages[tx.state.messages.length - 1];
-        return {
-          state: tx.state,
-          replyMessages: latestMsg ? [latestMsg] : [],
-        };
-      } else {
-        state = tx.state;
-        const room = state.rooms.find((r) => r.id === targetSession.roomId);
-        const occupied = new Set(
-          state.bookings
-            .filter(
-              (b) =>
-                b.sessionId === targetSession.id && b.status !== "cancelada"
-            )
-            .map((b) => b.spotId)
-        );
-        const freeSpotsList =
-          room?.spots
-            .filter((s) => !occupied.has(s.id) && s.status !== "maintenance")
-            .map((s) => s.id) || [];
-
-        const errReply: ChatMessage = {
-          id: `msg-${Date.now()}-bot`,
-          clientId: client.id,
-          sender: "bot",
-          text: `⚠️ ${tx.error}\n\n${
-            freeSpotsList.length > 0
-              ? `Para **${targetSession.branchName}** a las **${targetSession.startTime} hrs** tenemos disponibles los lugares: **${freeSpotsList.join(", ")}**.\n\nRespóndeme solo con el número de lugar que prefieras (ej. "${freeSpotsList[0]}"):`
-              : `Todos los lugares de las ${targetSession.startTime} hrs están ocupados. ¿Qué otro horario (7am–10am o 6pm–8pm) prefieres?`
-          }`,
-          timestamp: nowTime,
-          suggestedSpots: freeSpotsList
-            .slice(0, 4)
-            .map(
-              (sp) =>
-                `${targetSession.branchName} a las ${targetSession.startTime} en el ${sp}`
-            ),
-        };
-        state.messages.push(errReply);
-        writeDB(state);
-        return { state, replyMessages: [errReply] };
-      }
-    }
-  }
-
-  // CASO B: Tiene Sucursal y Lugar, pero no dijo la Hora (usamos la clase principal de esa sucursal o preguntamos solo la hora)
-  if (finalBranchId && !finalTime && finalSpot) {
-    const defaultSession = state.sessions.find(
-      (s) => s.branchId === finalBranchId && s.roomId !== "room-stiliza-campanario"
+    const targetSession = findOfficialSessionForBranchDayTime(
+      state,
+      finalBranchId,
+      finalDay,
+      finalTime
     );
-    if (defaultSession) {
-      const tx = createBookingTransaction({
+
+    if (!targetSession) {
+      const branch = state.branches.find((b) => b.id === finalBranchId);
+      const daySessions = state.sessions.filter(
+        (s) => s.branchId === finalBranchId && s.dayOfWeek === finalDay
+      );
+      const hoursList = daySessions
+        .map(
+          (s) =>
+            `${format12h(s.startTime)} (${s.title.split(" · ")[0]})`
+        )
+        .join(", ");
+
+      const noClassMsg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
         clientId: client.id,
-        sessionId: defaultSession.id,
-        spotId: finalSpot,
-        bookedVia: "whatsapp_bot",
-      });
-      if (tx.success && tx.booking) {
-        const updatedClient = tx.state.clients.find((c) => c.id === client.id);
-        if (updatedClient) {
-          updatedClient.conversationDraft = {};
-          writeDB(tx.state);
-        }
-        const latestMsg = tx.state.messages[tx.state.messages.length - 1];
-        return {
-          state: tx.state,
-          replyMessages: latestMsg ? [latestMsg] : [],
-        };
+        sender: "bot",
+        text:
+          daySessions.length > 0
+            ? `En **${branch?.name}** los días **${finalDay}** no tenemos clase a las ${finalTime}. Los horarios oficiales de **${finalDay}** son:\n\n• ${hoursList}\n\n¿En cuál de estos horarios te reservo el **Lugar #${finalSpot}**?`
+            : `En **${branch?.name}** no tenemos clases programadas los días **${finalDay}**. ¿Qué otro día de la semana u otra sucursal te gustaría reservar?`,
+        timestamp: nowTime,
+        suggestedSpots: daySessions
+          .slice(0, 4)
+          .map(
+            (s) =>
+              `${branch?.name} el ${finalDay} a las ${s.startTime} en el ${finalSpot}`
+          ),
+      };
+      state.messages.push(noClassMsg);
+      writeDB(state);
+      return { state, replyMessages: [noClassMsg] };
+    }
+
+    const tx = createBookingTransaction({
+      clientId: client.id,
+      sessionId: targetSession.id,
+      spotId: finalSpot,
+      bookedVia: "whatsapp_bot",
+    });
+
+    if (tx.success && tx.booking) {
+      const updatedClient = tx.state.clients.find((c) => c.id === client.id);
+      if (updatedClient) {
+        updatedClient.conversationDraft = {};
+        writeDB(tx.state);
       }
+      const latestMsg = tx.state.messages[tx.state.messages.length - 1];
+      return {
+        state: tx.state,
+        replyMessages: latestMsg ? [latestMsg] : [],
+      };
+    } else {
+      state = tx.state;
+      const room = state.rooms.find((r) => r.id === targetSession.roomId);
+      const occupied = new Set(
+        state.bookings
+          .filter(
+            (b) => b.sessionId === targetSession.id && b.status !== "cancelada"
+          )
+          .map((b) => b.spotId)
+      );
+      const freeSpotsList =
+        room?.spots
+          .filter((s) => !occupied.has(s.id) && s.status !== "maintenance")
+          .map((s) => s.id) || [];
+
+      const errReply: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `⚠️ ${tx.error}\n\n${
+          freeSpotsList.length > 0
+            ? `Para **${targetSession.title}** (${finalDay} · ${format12h(targetSession.startTime)}) tenemos disponibles los lugares: **${freeSpotsList.join(", ")}**.\n\nRespóndeme solo con el número de lugar que prefieras (ej. "${freeSpotsList[0]}"):`
+            : `Todos los lugares de esa clase están ocupados. ¿Qué otro horario prefieres?`
+        }`,
+        timestamp: nowTime,
+        suggestedSpots: freeSpotsList
+          .slice(0, 4)
+          .map(
+            (sp) =>
+              `${targetSession.branchName} a las ${targetSession.startTime} en el ${sp}`
+          ),
+      };
+      state.messages.push(errReply);
+      writeDB(state);
+      return { state, replyMessages: [errReply] };
     }
   }
 
-  // CASO C: Tiene Sucursal + Hora, solo falta el número de Lugar
+  // CASO B: Tiene Sucursal + Hora, solo falta el número de Lugar
   if (finalBranchId && finalTime && !finalSpot) {
-    const targetSession = findOrEnsureSession(state, finalBranchId, finalTime);
+    const targetSession = findOfficialSessionForBranchDayTime(
+      state,
+      finalBranchId,
+      finalDay,
+      finalTime
+    );
     const room = state.rooms.find((r) => r.branchId === finalBranchId);
+
     if (!room || room.spots.length === 0) {
       const msg: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `Por el momento **Stiliza Campanario** aún no tiene lugares habilitados. ¿Te gustaría reservar en **Devotion Campanario**, **Stiliza San Isidro** o **Juriquilla**?`,
+        text: `Por el momento **Stiliza Campanario (STCA)** aún no tiene lugares ni horarios activos. ¿Te gustaría reservar en **Devotion Campanario (DECA)**, **Stiliza San Isidro (STSI)** o **Juriquilla**?`,
         timestamp: nowTime,
       };
       state.messages.push(msg);
@@ -382,13 +463,42 @@ export function processAIChatTurn(params: {
       return { state, replyMessages: [msg] };
     }
 
+    if (!targetSession) {
+      const daySessions = state.sessions.filter(
+        (s) => s.branchId === finalBranchId && s.dayOfWeek === finalDay
+      );
+      const hoursList = daySessions
+        .map(
+          (s) => `${format12h(s.startTime)} (${s.title.split(" · ")[0]})`
+        )
+        .join(", ");
+
+      const msg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text:
+          daySessions.length > 0
+            ? `En **${room.branchName}** el día **${finalDay}** no hay clase a las ${finalTime}. Los horarios disponibles para **${finalDay}** son:\n• ${hoursList}\n\nDime cuál horario y lugar prefieres:`
+            : `En **${room.branchName}** no hay clases programadas en **${finalDay}**. ¿Qué otro día te gustaría agendar?`,
+        timestamp: nowTime,
+      };
+      state.messages.push(msg);
+      writeDB(state);
+      return { state, replyMessages: [msg] };
+    }
+
+    // Actualizar el draft con la hora exacta oficial (ej. 07:15 si dijo 7am)
+    client.conversationDraft = {
+      branchId: finalBranchId,
+      dayOfWeek: finalDay,
+      startTime: targetSession.startTime,
+    };
+
     const occupied = new Set(
       state.bookings
         .filter(
-          (b) =>
-            targetSession &&
-            b.sessionId === targetSession.id &&
-            b.status !== "cancelada"
+          (b) => b.sessionId === targetSession.id && b.status !== "cancelada"
         )
         .map((b) => b.spotId)
     );
@@ -400,26 +510,29 @@ export function processAIChatTurn(params: {
       id: `msg-${Date.now()}-bot`,
       clientId: client.id,
       sender: "bot",
-      text: `✨ Perfecto, para **${room.branchName}** a las **${finalTime} hrs** tenemos disponibles los lugares: **${freeSpots.join(", ")}**.\n\nRespóndeme únicamente con el número de lugar que quieres (por ejemplo: **"en el ${freeSpots[0] || "1"}"**) y te envío tu código QR:`,
+      text: `✨ Perfecto, para **${targetSession.title}** (**${finalDay} ${format12h(targetSession.startTime)}**) tenemos disponibles los lugares: **${freeSpots.join(", ")}**.\n\nRespóndeme únicamente con el número de lugar que quieres (por ejemplo: **"en el ${freeSpots[0] || "1"}"**) y te envío tu código QR:`,
       timestamp: nowTime,
       suggestedSpots: freeSpots
         .slice(0, 5)
-        .map((sp) => `${room.branchName} a las ${finalTime} en el ${sp}`),
+        .map(
+          (sp) =>
+            `${room.branchName} a las ${targetSession.startTime} en el ${sp}`
+        ),
     };
     state.messages.push(botReply);
     writeDB(state);
     return { state, replyMessages: [botReply] };
   }
 
-  // CASO D: Tiene Sucursal, pero falta Hora y Lugar
-  if (finalBranchId && !finalTime && !finalSpot) {
+  // CASO C: Tiene Sucursal, pero falta Hora (y quizá Lugar) -> le mostramos los horarios oficiales exactos de esa sucursal para ese día
+  if (finalBranchId && !finalTime) {
     const room = state.rooms.find((r) => r.branchId === finalBranchId);
     if (!room || room.spots.length === 0) {
       const msg: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `Por el momento **Stiliza Campanario** tiene 0 lugares activos. ¿En cuál otra sucursal te gustaría agendar?`,
+        text: `Por el momento **Stiliza Campanario (STCA)** no tiene horarios ni lugares activos. ¿En cuál otra sucursal te gustaría agendar?`,
         timestamp: nowTime,
       };
       state.messages.push(msg);
@@ -427,35 +540,48 @@ export function processAIChatTurn(params: {
       return { state, replyMessages: [msg] };
     }
 
+    const daySessions = state.sessions.filter(
+      (s) => s.branchId === finalBranchId && s.dayOfWeek === finalDay
+    );
+    const scheduleBulletList =
+      daySessions.length > 0
+        ? daySessions
+            .map(
+              (s) =>
+                `• **${format12h(s.startTime)}** — ${s.title.split(" · ")[0]}`
+            )
+            .join("\n")
+        : "• Sin clases programadas este día";
+
     const botReply: ChatMessage = {
       id: `msg-${Date.now()}-bot`,
       clientId: client.id,
       sender: "bot",
-      text: `🤍 Excelente, seleccionaste **${room.branchName}** (${room.spots.length} lugares disponibles: del 1 al ${room.spots.length}).\n\nNuestros horarios son:\n• **Mañana**: 7:00 am, 8:00 am, 9:00 am y 10:00 am\n• **Tarde/Noche**: 6:00 pm, 7:00 pm y 8:00 pm\n\n¿A qué hora y en qué número de lugar te reservo? (Ej. *"a las 6pm en el 3"*):`,
+      text: `🤍 Excelente, seleccionaste **${room.branchName}** (Lugares 1 al ${room.spots.length}).\n\nHorarios oficiales de **${finalDay}**:\n${scheduleBulletList}\n\n¿A qué hora y en qué número de lugar te reservo? (Ej. *"a las ${daySessions[0]?.startTime || "18:00"} en el ${finalSpot || "3"}"*):`,
       timestamp: nowTime,
-      suggestedSpots: [
-        `${room.branchName} a las 7am en el 1`,
-        `${room.branchName} a las 8am en el 2`,
-        `${room.branchName} a las 6pm en el 3`,
-        `${room.branchName} a las 7pm en el 4`,
-      ],
+      suggestedSpots: daySessions
+        .slice(0, 4)
+        .map(
+          (s, idx) =>
+            `${room.branchName} a las ${s.startTime} en el ${finalSpot || idx + 1}`
+        ),
     };
     state.messages.push(botReply);
     writeDB(state);
     return { state, replyMessages: [botReply] };
   }
 
-  // CASO E: Saludo inicial o consulta general
+  // CASO D: Saludo inicial o consulta general
   const botReply: ChatMessage = {
     id: `msg-${Date.now()}-bot`,
     clientId: client.id,
     sender: "bot",
-    text: `¡Hola ${firstName}! Soy **Stiliza & Devotion Concierge IA** 🤍. Tienes **${client.creditsRemaining} tokens disponibles**.\n\nManejamos horarios de **Lunes a Domingo**:\n☀️ **Matutino**: 7:00 am, 8:00 am, 9:00 am y 10:00 am\n🌙 **Vespertino**: 6:00 pm, 7:00 pm y 8:00 pm\n\nSucursales activas:\n• **Stiliza San Isidro** (Lugares 1 al 5)\n• **Stiliza Juriquilla** (Lugares 1 al 8)\n• **Devotion Zibatá** (Lugares 1 al 12)\n• **Devotion Juriquilla** (Lugares 1 al 12)\n• **Devotion Campanario** (Lugares 1 al 12)\n\nEscríbeme sucursal, hora y lugar (ej. *"Stiliza San Isidro a las 6pm en el 3"*) y te envío tu código QR al instante:`,
+    text: `¡Hola ${firstName}! Soy **Stiliza & Devotion Concierge IA** 🤍. Tienes **${client.creditsRemaining} tokens disponibles**.\n\nNuestros estudios activos (**Lunes a Domingo**):\n• **Stiliza San Isidro (STSI)** · REFORMER (5 lugares)\n• **Stiliza Juriquilla (STJU)** · REFORMER (8 lugares)\n• **Devotion Zibatá (DEZI)** · FULL / LOWER / UPPER BODY (12 lugares)\n• **Devotion Juriquilla (DEJU)** · FULL / LOWER / UPPER / STRETCHING (12 lugares)\n• **Devotion Campanario (DECA)** · FULL / LOWER / UPPER BODY (12 lugares)\n\nEscríbeme el estudio, hora y lugar (ej. *"Stiliza San Isidro a las 6pm en el 3"* o *"DEZI a las 7:15am en el 4"*) y te envío tu código QR al instante:`,
     timestamp: nowTime,
     suggestedSpots: [
       "Stiliza San Isidro a las 6pm en el 3",
-      "Devotion Zibatá a las 7pm en el 3",
-      "Devotion Juriquilla a las 8am en el 4",
+      "Devotion Zibatá a las 7:15am en el 3",
+      "Devotion Juriquilla a las 8:15am en el 4",
       "Stiliza Juriquilla a las 6pm en el 2",
     ],
   };

@@ -124,10 +124,10 @@ export function AdminCRMDashboard({
   onSyncExternalBooking,
 }: AdminCRMDashboardProps) {
   const [branchFilter, setBranchFilter] = useState<string>("all");
-  const [dayFilter, setDayFilter] = useState<string>("all");
+  const [dayFilter, setDayFilter] = useState<string>("Martes");
   const [blockFilter, setBlockFilter] = useState<"all" | "manana" | "tarde">("all");
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
-    db.sessions[2]?.id || db.sessions[0]?.id || ""
+    "ses-dezi-martes-1800"
   );
   const [clientSearch, setClientSearch] = useState("");
 
@@ -307,26 +307,39 @@ export function AdminCRMDashboard({
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                      br.brand === "Devotion"
-                        ? "bg-orange-500/20 text-orange-700 border border-orange-400/30"
-                        : "bg-amber-500/20 text-amber-800 border border-amber-400/30"
-                    } ${isSelected ? "!text-amber-200 !bg-white/15" : ""}`}
-                  >
-                    {br.brand === "Devotion" ? (
-                      <Flame className="h-3 w-3" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                        br.brand === "Devotion"
+                          ? "bg-orange-500/20 text-orange-700 border border-orange-400/30"
+                          : "bg-amber-500/20 text-amber-800 border border-amber-400/30"
+                      } ${isSelected ? "!text-amber-200 !bg-white/15" : ""}`}
+                    >
+                      {br.brand === "Devotion" ? (
+                        <Flame className="h-3 w-3" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      {br.brand}
+                    </span>
+                    {br.code && (
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-extrabold ${
+                          isSelected
+                            ? "bg-amber-400 text-stone-950"
+                            : "bg-stone-900 text-amber-200"
+                        }`}
+                      >
+                        {br.code}
+                      </span>
                     )}
-                    {br.brand}
-                  </span>
+                  </div>
                   <span
                     className={`text-[11px] font-semibold ${
                       isSelected ? "text-amber-300" : "text-stone-500"
                     }`}
                   >
-                    {br.kiosksCount} Kioscos
+                    {brSessions.length} clases/sem
                   </span>
                 </div>
 
@@ -647,16 +660,17 @@ export function AdminCRMDashboard({
               onChange={(e) => setSesTime(e.target.value)}
               className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
             >
-              <optgroup label="Mañana (7:00 am - 10:00 am)">
-                <option value="07:00">07:00 am</option>
-                <option value="08:00">08:00 am</option>
-                <option value="09:00">09:00 am</option>
-                <option value="10:00">10:00 am</option>
+              <optgroup label="Mañana Oficial (:15 AM)">
+                <option value="06:15">06:15 AM</option>
+                <option value="07:15">07:15 AM</option>
+                <option value="08:15">08:15 AM</option>
+                <option value="09:15">09:15 AM</option>
+                <option value="10:15">10:15 AM</option>
               </optgroup>
-              <optgroup label="Tarde/Noche (6:00 pm - 8:00 pm)">
-                <option value="18:00">18:00 (6:00 pm)</option>
-                <option value="19:00">19:00 (7:00 pm)</option>
-                <option value="20:00">20:00 (8:00 pm)</option>
+              <optgroup label="Tarde/Noche Oficial (PM)">
+                <option value="18:00">18:00 (06:00 PM)</option>
+                <option value="19:00">19:00 (07:00 PM)</option>
+                <option value="20:00">20:00 (08:00 PM)</option>
               </optgroup>
             </select>
             <select
@@ -1070,18 +1084,17 @@ export function AdminCRMDashboard({
                 }
                 className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
               >
-                <optgroup label="Mañana (7am - 10am)">
-                  <option value="07:00">07:00</option>
-                  <option value="08:00">08:00</option>
-                  <option value="09:00">09:00</option>
-                  <option value="10:00">10:00</option>
+                <optgroup label="Mañana Oficial (:15 AM)">
+                  <option value="06:15">06:15 AM</option>
+                  <option value="07:15">07:15 AM</option>
+                  <option value="08:15">08:15 AM</option>
+                  <option value="09:15">09:15 AM</option>
+                  <option value="10:15">10:15 AM</option>
                 </optgroup>
-                <optgroup label="Tarde (6pm - 8pm)">
-                  <option value="18:00">18:00</option>
-                  <option value="18:30">18:30</option>
-                  <option value="19:00">19:00</option>
-                  <option value="19:30">19:30</option>
-                  <option value="20:00">20:00</option>
+                <optgroup label="Tarde Oficial (PM)">
+                  <option value="18:00">18:00 (06:00 PM)</option>
+                  <option value="19:00">19:00 (07:00 PM)</option>
+                  <option value="20:00">20:00 (08:00 PM)</option>
                 </optgroup>
               </select>
               <select

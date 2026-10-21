@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { Booking, CRMDatabaseState, KioskCheckInResult } from "@/types/crm";
+import { Booking, CRMDatabaseState, DayOfWeek, KioskCheckInResult } from "@/types/crm";
 import { StudioSpotMap } from "@/components/StudioSpotMap";
 import { QRCodePassCard } from "@/components/QRCodePassCard";
 import {
@@ -76,12 +76,16 @@ export function TabletKioskView({
 
   // State for Horarios & Spot Booking on the Kiosk
   const [showAllBranchesSchedule, setShowAllBranchesSchedule] = useState(false);
+  const [kioskDayFilter, setKioskDayFilter] = useState<DayOfWeek>("Martes");
   const [selectedClientId, setSelectedClientId] = useState<string>(
     db.clients[0]?.id || "cli-1"
   );
-  const branchSessions = db.sessions.filter((s) =>
-    !branchId || showAllBranchesSchedule ? true : s.branchId === branchId
-  );
+  const branchSessions = db.sessions.filter((s) => {
+    const branchMatch =
+      !branchId || showAllBranchesSchedule ? true : s.branchId === branchId;
+    const dayMatch = (s.dayOfWeek || "Martes") === kioskDayFilter;
+    return branchMatch && dayMatch;
+  });
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     branchSessions[0]?.id || db.sessions[0]?.id || ""
   );
@@ -677,6 +681,34 @@ export function TabletKioskView({
             </div>
           </div>
 
+          {/* Selector de Día (Lunes a Domingo) en Kiosco */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(
+              [
+                "Lunes",
+                "Martes",
+                "Miércoles",
+                "Jueves",
+                "Viernes",
+                "Sábado",
+                "Domingo",
+              ] as DayOfWeek[]
+            ).map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setKioskDayFilter(day)}
+                className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition ${
+                  kioskDayFilter === day
+                    ? "bg-amber-400 text-stone-950 shadow-sm"
+                    : "bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {branchSessions.map((ses) => {
               const isSelected = ses.id === activeSession?.id;
@@ -711,7 +743,7 @@ export function TabletKioskView({
                       {ses.startTime} hrs
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                      {ses.brand} · {ses.date === "2026-10-19" ? "Hoy" : "Mañana"}
+                      {ses.brand} · {ses.dayOfWeek || "Martes"}
                     </span>
                   </div>
                   <h4 className="font-bold text-sm mt-2">{ses.title}</h4>

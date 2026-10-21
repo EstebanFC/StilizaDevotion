@@ -220,15 +220,19 @@ export async function loadStateFromSupabase(): Promise<CRMDatabaseState> {
 
     if (res.rows.length > 0 && res.rows[0].state) {
       const state = res.rows[0].state as CRMDatabaseState;
-      // Si el estado guardado tenía menos de 10 sesiones (semilla anterior), inyectar los nuevos horarios de 7am-10am y 6pm-8pm sin borrar clientes ni chats
       const seed = getInitialSeedData();
       let updated = false;
-      for (const seedSes of seed.sessions) {
-        if (!state.sessions.some((s) => s.id === seedSes.id)) {
-          state.sessions.push(seedSes);
-          updated = true;
-        }
+
+      // Sincronizar códigos oficiales de sucursal (STSI, STJU, STCA, DEZI, DEJU, DECA)
+      state.branches = seed.branches;
+
+      // Si el estado guardado aún no tiene la matriz oficial de 125 clases del JSON (ses-stsi-lunes-0715),
+      // reemplazar las sesiones de prueba por los horarios oficiales reales de los 6 estudios
+      if (!state.sessions.some((s) => s.id === "ses-stsi-lunes-0715")) {
+        state.sessions = seed.sessions;
+        updated = true;
       }
+
       if (updated) {
         await saveStateToSupabase(state);
       } else {
