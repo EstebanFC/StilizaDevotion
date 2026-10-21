@@ -220,7 +220,20 @@ export async function loadStateFromSupabase(): Promise<CRMDatabaseState> {
 
     if (res.rows.length > 0 && res.rows[0].state) {
       const state = res.rows[0].state as CRMDatabaseState;
-      writeDB(state);
+      // Si el estado guardado tenía menos de 10 sesiones (semilla anterior), inyectar los nuevos horarios de 7am-10am y 6pm-8pm sin borrar clientes ni chats
+      const seed = getInitialSeedData();
+      let updated = false;
+      for (const seedSes of seed.sessions) {
+        if (!state.sessions.some((s) => s.id === seedSes.id)) {
+          state.sessions.push(seedSes);
+          updated = true;
+        }
+      }
+      if (updated) {
+        await saveStateToSupabase(state);
+      } else {
+        writeDB(state);
+      }
       return state;
     }
 

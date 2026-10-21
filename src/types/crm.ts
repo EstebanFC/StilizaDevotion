@@ -95,6 +95,15 @@ export interface ClassPackage {
   promoTag?: string;
 }
 
+export type DayOfWeek =
+  | "Lunes"
+  | "Martes"
+  | "Miércoles"
+  | "Jueves"
+  | "Viernes"
+  | "Sábado"
+  | "Domingo";
+
 export interface Client {
   id: string;
   name: string;
@@ -112,6 +121,12 @@ export interface Client {
   homeBranchName?: string;
   medicalNotes?: string;
   joinedAt: string;
+  conversationDraft?: {
+    branchId?: string;
+    startTime?: string;
+    dayOfWeek?: DayOfWeek;
+    sessionId?: string;
+  };
 }
 
 export interface ClassSession {
@@ -126,6 +141,8 @@ export interface ClassSession {
   instructor: string;
   instructorAvatar: string;
   date: string;
+  dayOfWeek?: DayOfWeek;
+  timeBlock?: "manana" | "tarde";
   startTime: string;
   durationMinutes: number;
   level: "Todos los niveles" | "Intermedio" | "Avanzado" | "Principiantes";

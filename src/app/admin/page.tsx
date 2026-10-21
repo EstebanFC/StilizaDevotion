@@ -40,16 +40,66 @@ export default function AdminOnlyPortalPage() {
     null
   );
 
-  const fetchDatabase = async () => {
-    const res = await fetch("/api/crm");
-    if (res.ok) {
-      const data = await res.json();
-      setDb(data);
+  // Restaurar sesión de Administrador y pestaña activa al refrescar página
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("sd_admin_session_v1");
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser) as SessionUser;
+        if (parsed && parsed.role === "admin") {
+          setAdminUser(parsed);
+        }
+      }
+      const savedTab = localStorage.getItem("sd_admin_module_v1") as AdminModule | null;
+      if (savedTab) {
+        setActiveAdminModule(savedTab);
+      }
+    } catch {
+      // Ignorar errores de localStorage
+    }
+  }, []);
+
+  const handleSetAdminUser = (user: SessionUser | null) => {
+    setAdminUser(user);
+    try {
+      if (user) {
+        localStorage.setItem("sd_admin_session_v1", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("sd_admin_session_v1");
+      }
+    } catch {
+      // Ignorar errores de localStorage
     }
   };
 
+  const handleChangeAdminModule = (mod: AdminModule) => {
+    setActiveAdminModule(mod);
+    try {
+      localStorage.setItem("sd_admin_module_v1", mod);
+    } catch {
+      // Ignorar
+    }
+  };
+
+  const fetchDatabase = async () => {
+    try {
+      const res = await fetch("/api/crm", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setDb(data);
+      }
+    } catch {
+      // Ignorar error transitorio de red
+    }
+  };
+
+  // Carga inicial + Polling automático cada 3 segundos para actualizar conversaciones de WhatsApp y reservas en tiempo real
   useEffect(() => {
     fetchDatabase();
+    const interval = setInterval(() => {
+      fetchDatabase();
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleBookSpot = async (params: {
@@ -123,7 +173,7 @@ export default function AdminOnlyPortalPage() {
 
   const handleJumpToKioskWithToken = (qrToken: string) => {
     setExternalKioskToken(qrToken);
-    setActiveAdminModule("tablet_kiosk");
+    handleChangeAdminModule("tablet_kiosk");
   };
 
   if (!db) {
@@ -146,7 +196,7 @@ export default function AdminOnlyPortalPage() {
       <LoginGateway
         mode="admin_only"
         branches={db.branches || []}
-        onLogin={(user) => setAdminUser(user)}
+        onLogin={(user) => handleSetAdminUser(user)}
       />
     );
   }
@@ -170,6 +220,10 @@ export default function AdminOnlyPortalPage() {
                     <Flame className="h-2.5 w-2.5 text-orange-600" /> Channel
                     Manager
                   </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    En Vivo
+                  </span>
                 </div>
                 <p className="text-xs text-stone-500">{adminUser.label}</p>
               </div>
@@ -180,7 +234,7 @@ export default function AdminOnlyPortalPage() {
             <nav className="flex flex-wrap items-center gap-1.5 bg-stone-200/75 p-1.5 rounded-2xl">
               <button
                 type="button"
-                onClick={() => setActiveAdminModule("admin_crm")}
+                onClick={() => handleChangeAdminModule("admin_crm")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "admin_crm"
                     ? "bg-stone-900 text-amber-200 shadow-sm"
@@ -193,7 +247,7 @@ export default function AdminOnlyPortalPage() {
 
               <button
                 type="button"
-                onClick={() => setActiveAdminModule("whatsapp_ai")}
+                onClick={() => handleChangeAdminModule("whatsapp_ai")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "whatsapp_ai"
                     ? "bg-[#1A2E26] text-emerald-200 shadow-sm"
@@ -206,7 +260,7 @@ export default function AdminOnlyPortalPage() {
 
               <button
                 type="button"
-                onClick={() => setActiveAdminModule("tablet_kiosk")}
+                onClick={() => handleChangeAdminModule("tablet_kiosk")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "tablet_kiosk"
                     ? "bg-amber-400 text-stone-950 shadow-sm"
@@ -219,7 +273,7 @@ export default function AdminOnlyPortalPage() {
 
               <button
                 type="button"
-                onClick={() => setActiveAdminModule("client_portal")}
+                onClick={() => handleChangeAdminModule("client_portal")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "client_portal"
                     ? "bg-stone-900 text-white shadow-sm"
@@ -233,7 +287,7 @@ export default function AdminOnlyPortalPage() {
 
             <button
               type="button"
-              onClick={() => setAdminUser(null)}
+              onClick={() => handleSetAdminUser(null)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold px-3 py-2.5 transition"
             >
               <LogOut className="h-3.5 w-3.5" />
@@ -354,7 +408,7 @@ export default function AdminOnlyPortalPage() {
             onScanInKiosk={handleJumpToKioskWithToken}
             onOpenClientChat={(clientId) => {
               setSelectedClientId(clientId);
-              setActiveAdminModule("whatsapp_ai");
+              handleChangeAdminModule("whatsapp_ai");
             }}
             onResetDemo={async () => {
               const res = await fetch("/api/crm", {
@@ -413,7 +467,7 @@ export default function AdminOnlyPortalPage() {
             onChangeClient={setSelectedClientId}
             onBookSpot={handleBookSpot}
             onBuyPackage={handleBuyPackage}
-            onOpenWhatsAppChat={() => setActiveAdminModule("whatsapp_ai")}
+            onOpenWhatsAppChat={() => handleChangeAdminModule("whatsapp_ai")}
             onSimulateScanInKiosk={handleJumpToKioskWithToken}
           />
         )}

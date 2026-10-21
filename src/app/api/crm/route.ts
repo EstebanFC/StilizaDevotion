@@ -244,6 +244,7 @@ export async function POST(req: NextRequest) {
         roomId,
         instructor,
         date,
+        dayOfWeek,
         startTime,
         level,
         isSpecialClass,
@@ -258,6 +259,9 @@ export async function POST(req: NextRequest) {
         .slice(0, 2)
         .toUpperCase();
 
+      const timeStr = String(startTime || "18:00");
+      const hourNum = parseInt(timeStr.split(":")[0] || "18", 10);
+
       const newSession: ClassSession = {
         id: `ses-${Date.now()}`,
         title: String(title || "Reformer Signature Session"),
@@ -270,7 +274,9 @@ export async function POST(req: NextRequest) {
         instructor: String(instructor || "Coach Daniela R."),
         instructorAvatar: initials || "CS",
         date: String(date || "2026-10-20"),
-        startTime: String(startTime || "10:00"),
+        dayOfWeek: dayOfWeek || "Martes",
+        timeBlock: hourNum < 13 ? "manana" : "tarde",
+        startTime: timeStr,
         durationMinutes: 50,
         level: level || "Todos los niveles",
         intensity: room.discipline === "hot_pilates" ? "Intensa 🔥" : "Alta",
@@ -290,6 +296,7 @@ export async function POST(req: NextRequest) {
         instructor,
         startTime,
         date,
+        dayOfWeek,
         roomId,
         isSpecialClass,
         specialBadge,
@@ -299,8 +306,13 @@ export async function POST(req: NextRequest) {
       if (ses) {
         if (title !== undefined) ses.title = String(title);
         if (instructor !== undefined) ses.instructor = String(instructor);
-        if (startTime !== undefined) ses.startTime = String(startTime);
+        if (startTime !== undefined) {
+          ses.startTime = String(startTime);
+          const hourNum = parseInt(ses.startTime.split(":")[0] || "18", 10);
+          ses.timeBlock = hourNum < 13 ? "manana" : "tarde";
+        }
         if (date !== undefined) ses.date = String(date);
+        if (dayOfWeek !== undefined) ses.dayOfWeek = dayOfWeek;
         if (isSpecialClass !== undefined)
           ses.isSpecialClass = Boolean(isSpecialClass);
         if (specialBadge !== undefined) ses.specialBadge = specialBadge;

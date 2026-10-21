@@ -18,16 +18,52 @@ export default function KioskOnlyPortalPage() {
   const [showUnlockPrompt, setShowUnlockPrompt] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
 
+  // Restaurar sesión del Kiosco al refrescar página
+  useEffect(() => {
+    try {
+      const savedKiosk = localStorage.getItem("sd_kiosk_session_v1");
+      if (savedKiosk) {
+        const parsed = JSON.parse(savedKiosk) as SessionUser;
+        if (parsed && parsed.role === "kiosco") {
+          setKioskUser(parsed);
+        }
+      }
+    } catch {
+      // Ignorar
+    }
+  }, []);
+
+  const handleSetKioskUser = (user: SessionUser | null) => {
+    setKioskUser(user);
+    try {
+      if (user) {
+        localStorage.setItem("sd_kiosk_session_v1", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("sd_kiosk_session_v1");
+      }
+    } catch {
+      // Ignorar
+    }
+  };
+
   const fetchDatabase = async () => {
-    const res = await fetch("/api/crm");
-    if (res.ok) {
-      const data = await res.json();
-      setDb(data);
+    try {
+      const res = await fetch("/api/crm", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setDb(data);
+      }
+    } catch {
+      // Ignorar
     }
   };
 
   useEffect(() => {
     fetchDatabase();
+    const interval = setInterval(() => {
+      fetchDatabase();
+    }, 3500);
+    return () => clearInterval(interval);
   }, []);
 
   const handleBookSpot = async (params: {
@@ -105,7 +141,7 @@ export default function KioskOnlyPortalPage() {
       <LoginGateway
         mode="kiosco_only"
         branches={db.branches || []}
-        onLogin={(user) => setKioskUser(user)}
+        onLogin={(user) => handleSetKioskUser(user)}
       />
     );
   }
@@ -140,7 +176,7 @@ export default function KioskOnlyPortalPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (unlockPin.trim() === "1234") {
-                  setKioskUser(null);
+                  handleSetKioskUser(null);
                   setShowUnlockPrompt(false);
                   setUnlockPin("");
                 }

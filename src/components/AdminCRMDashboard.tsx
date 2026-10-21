@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   ClassSession,
   CRMDatabaseState,
+  DayOfWeek,
   ExternalAggregator,
   StudioBrand,
 } from "@/types/crm";
@@ -48,6 +49,7 @@ interface AdminCRMDashboardProps {
     roomId: string;
     instructor: string;
     date: string;
+    dayOfWeek?: DayOfWeek;
     startTime: string;
     isSpecialClass?: boolean;
     specialBadge?: string;
@@ -58,6 +60,7 @@ interface AdminCRMDashboardProps {
     instructor: string;
     startTime: string;
     date: string;
+    dayOfWeek?: DayOfWeek;
     roomId: string;
     isSpecialClass?: boolean;
     specialBadge?: string;
@@ -121,6 +124,8 @@ export function AdminCRMDashboard({
   onSyncExternalBooking,
 }: AdminCRMDashboardProps) {
   const [branchFilter, setBranchFilter] = useState<string>("all");
+  const [dayFilter, setDayFilter] = useState<string>("all");
+  const [blockFilter, setBlockFilter] = useState<"all" | "manana" | "tarde">("all");
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     db.sessions[2]?.id || db.sessions[0]?.id || ""
   );
@@ -157,8 +162,9 @@ export function AdminCRMDashboard({
     db.rooms[0]?.id || "room-reformer-a"
   );
   const [sesInstructor, setSesInstructor] = useState("Coach Daniela R.");
-  const [sesDate, setSesDate] = useState("2026-10-19");
-  const [sesTime, setSesTime] = useState("20:30");
+  const [sesDate, setSesDate] = useState("2026-10-20");
+  const [sesDayOfWeek, setSesDayOfWeek] = useState<DayOfWeek>("Martes");
+  const [sesTime, setSesTime] = useState("18:00");
   const [sesIsSpecial, setSesIsSpecial] = useState(false);
   const [sesBadge, setSesBadge] = useState("🎧 DJ Live Set");
 
@@ -181,9 +187,16 @@ export function AdminCRMDashboard({
   const [brAddress, setBrAddress] = useState("");
   const [brKiosks, setBrKiosks] = useState(2);
 
-  const filteredSessions = db.sessions.filter((s) =>
-    branchFilter === "all" ? true : s.branchId === branchFilter
-  );
+  const filteredSessions = db.sessions.filter((s) => {
+    if (branchFilter !== "all" && s.branchId !== branchFilter) return false;
+    if (dayFilter !== "all" && (s.dayOfWeek || "Martes") !== dayFilter) return false;
+    if (blockFilter !== "all") {
+      const hourNum = parseInt(s.startTime.split(":")[0] || "18", 10);
+      const computedBlock = s.timeBlock || (hourNum < 13 ? "manana" : "tarde");
+      if (computedBlock !== blockFilter) return false;
+    }
+    return true;
+  });
 
   const activeBookings = db.bookings.filter(
     (b) =>
@@ -576,6 +589,7 @@ export function AdminCRMDashboard({
               roomId: sesRoomId,
               instructor: sesInstructor,
               date: sesDate,
+              dayOfWeek: sesDayOfWeek,
               startTime: sesTime,
               isSpecialClass: sesIsSpecial,
               specialBadge: sesIsSpecial ? sesBadge : undefined,
@@ -585,7 +599,7 @@ export function AdminCRMDashboard({
           className="rounded-3xl bg-white border border-stone-300 p-6 shadow-md space-y-4"
         >
           <h3 className="text-base font-bold text-stone-900">
-            Programar Nueva Clase o Clase Especial en Sucursal
+            Programar Nueva Clase en Horario de Sucursal (7am-10am o 6pm-8pm · Lunes a Domingo)
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <input
@@ -608,6 +622,44 @@ export function AdminCRMDashboard({
               ))}
             </select>
             <select
+              value={sesDayOfWeek}
+              onChange={(e) => setSesDayOfWeek(e.target.value as DayOfWeek)}
+              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+            >
+              {(
+                [
+                  "Lunes",
+                  "Martes",
+                  "Miércoles",
+                  "Jueves",
+                  "Viernes",
+                  "Sábado",
+                  "Domingo",
+                ] as DayOfWeek[]
+              ).map((day) => (
+                <option key={day} value={day}>
+                  Día: {day}
+                </option>
+              ))}
+            </select>
+            <select
+              value={sesTime}
+              onChange={(e) => setSesTime(e.target.value)}
+              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
+            >
+              <optgroup label="Mañana (7:00 am - 10:00 am)">
+                <option value="07:00">07:00 am</option>
+                <option value="08:00">08:00 am</option>
+                <option value="09:00">09:00 am</option>
+                <option value="10:00">10:00 am</option>
+              </optgroup>
+              <optgroup label="Tarde/Noche (6:00 pm - 8:00 pm)">
+                <option value="18:00">18:00 (6:00 pm)</option>
+                <option value="19:00">19:00 (7:00 pm)</option>
+                <option value="20:00">20:00 (8:00 pm)</option>
+              </optgroup>
+            </select>
+            <select
               value={sesInstructor}
               onChange={(e) => setSesInstructor(e.target.value)}
               className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
@@ -618,13 +670,8 @@ export function AdminCRMDashboard({
                 </option>
               ))}
             </select>
-            <input
-              type="text"
-              value={sesTime}
-              onChange={(e) => setSesTime(e.target.value)}
-              placeholder="Hora (ej. 20:00)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
-            />
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-700">
               <input
                 type="checkbox"
@@ -633,16 +680,16 @@ export function AdminCRMDashboard({
               />
               ¿Es Clase Especial?
             </label>
+            {sesIsSpecial && (
+              <input
+                type="text"
+                value={sesBadge}
+                onChange={(e) => setSesBadge(e.target.value)}
+                placeholder="Etiqueta especial (ej. 🎧 DJ Live Set / 🕯️ Soundbath)"
+                className="w-full sm:w-80 rounded-xl border border-amber-400 px-3 py-2 text-xs"
+              />
+            )}
           </div>
-          {sesIsSpecial && (
-            <input
-              type="text"
-              value={sesBadge}
-              onChange={(e) => setSesBadge(e.target.value)}
-              placeholder="Etiqueta especial (ej. 🎧 DJ Live Set / 🕯️ Soundbath)"
-              className="w-full sm:w-80 rounded-xl border border-amber-400 px-3 py-2 text-xs"
-            />
-          )}
           <div>
             <button
               type="submit"
@@ -855,18 +902,93 @@ export function AdminCRMDashboard({
           4. CONTROL DE HORARIOS, RESERVAS POR CLASE Y EDICIÓN EN VIVO
          ===================================================================== */}
       <div className="rounded-3xl bg-white border border-stone-200/90 p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-extrabold text-stone-900">
-              Horarios por Sucursal · Cuántas Personas Reservaron y Edición de
-              Clases
+              Horarios por Sucursal (Lunes a Domingo · 7:00 am – 10:00 am y 6:00 pm – 8:00 pm)
             </h3>
             <p className="text-xs text-stone-500">
-              Selecciona cualquier clase para ver su mapa de máquinas/tapetes
-              abajo o haz clic en <strong>Modificar</strong> para cambiar hora,
-              coach o salón
+              Filtra por día de la semana o bloque horario (Mañana 7am-10am / Tarde 6pm-8pm). Haz clic en <strong>Modificar</strong> para ajustar clase, hora o coach.
             </p>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro de Turno: Mañana (7am-10am) vs Tarde (6pm-8pm) */}
+            <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200 text-xs">
+              <button
+                type="button"
+                onClick={() => setBlockFilter("all")}
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${
+                  blockFilter === "all"
+                    ? "bg-stone-900 text-amber-200"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                Todos los turnos
+              </button>
+              <button
+                type="button"
+                onClick={() => setBlockFilter("manana")}
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${
+                  blockFilter === "manana"
+                    ? "bg-amber-400 text-stone-950"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                ☀️ Mañana (7am - 10am)
+              </button>
+              <button
+                type="button"
+                onClick={() => setBlockFilter("tarde")}
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${
+                  blockFilter === "tarde"
+                    ? "bg-stone-900 text-amber-200"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                🌙 Tarde (6pm - 8pm)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Pestañas de Días de la Semana (Lunes a Domingo) */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-stone-100 pb-3">
+          <button
+            type="button"
+            onClick={() => setDayFilter("all")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+              dayFilter === "all"
+                ? "bg-stone-900 text-amber-200"
+                : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
+            }`}
+          >
+            Todos los días
+          </button>
+          {(
+            [
+              "Lunes",
+              "Martes",
+              "Miércoles",
+              "Jueves",
+              "Viernes",
+              "Sábado",
+              "Domingo",
+            ] as DayOfWeek[]
+          ).map((day) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setDayFilter(day)}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                dayFilter === day
+                  ? "bg-stone-900 text-amber-200"
+                  : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
+              }`}
+            >
+              {day}
+            </button>
+          ))}
         </div>
 
         {editingSession && (
@@ -879,6 +1001,7 @@ export function AdminCRMDashboard({
                 instructor: editingSession.instructor,
                 startTime: editingSession.startTime,
                 date: editingSession.date,
+                dayOfWeek: editingSession.dayOfWeek,
                 roomId: editingSession.roomId,
                 isSpecialClass: editingSession.isSpecialClass,
                 specialBadge: editingSession.specialBadge,
@@ -899,7 +1022,7 @@ export function AdminCRMDashboard({
                 Cancelar ✕
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
               <input
                 type="text"
                 value={editingSession.title}
@@ -911,6 +1034,56 @@ export function AdminCRMDashboard({
                 }
                 className="sm:col-span-2 rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
               />
+              <select
+                value={editingSession.dayOfWeek || "Martes"}
+                onChange={(e) =>
+                  setEditingSession({
+                    ...editingSession,
+                    dayOfWeek: e.target.value as DayOfWeek,
+                  })
+                }
+                className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+              >
+                {(
+                  [
+                    "Lunes",
+                    "Martes",
+                    "Miércoles",
+                    "Jueves",
+                    "Viernes",
+                    "Sábado",
+                    "Domingo",
+                  ] as DayOfWeek[]
+                ).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={editingSession.startTime}
+                onChange={(e) =>
+                  setEditingSession({
+                    ...editingSession,
+                    startTime: e.target.value,
+                  })
+                }
+                className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
+              >
+                <optgroup label="Mañana (7am - 10am)">
+                  <option value="07:00">07:00</option>
+                  <option value="08:00">08:00</option>
+                  <option value="09:00">09:00</option>
+                  <option value="10:00">10:00</option>
+                </optgroup>
+                <optgroup label="Tarde (6pm - 8pm)">
+                  <option value="18:00">18:00</option>
+                  <option value="18:30">18:30</option>
+                  <option value="19:00">19:00</option>
+                  <option value="19:30">19:30</option>
+                  <option value="20:00">20:00</option>
+                </optgroup>
+              </select>
               <select
                 value={editingSession.instructor}
                 onChange={(e) =>
@@ -927,17 +1100,6 @@ export function AdminCRMDashboard({
                   </option>
                 ))}
               </select>
-              <input
-                type="text"
-                value={editingSession.startTime}
-                onChange={(e) =>
-                  setEditingSession({
-                    ...editingSession,
-                    startTime: e.target.value,
-                  })
-                }
-                className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono"
-              />
               <select
                 value={editingSession.roomId}
                 onChange={(e) =>
@@ -969,7 +1131,7 @@ export function AdminCRMDashboard({
             <thead>
               <tr className="border-b border-stone-200 text-[11px] uppercase tracking-wider text-stone-400">
                 <th className="py-2.5 px-3">Sucursal / Marca</th>
-                <th className="py-2.5 px-3">Horario</th>
+                <th className="py-2.5 px-3">Día & Horario</th>
                 <th className="py-2.5 px-3">Clase & Salón</th>
                 <th className="py-2.5 px-3">Coach</th>
                 <th className="py-2.5 px-3">Reservaron / Disponibilidad</th>
@@ -988,6 +1150,8 @@ export function AdminCRMDashboard({
                 ).length;
                 const available = Math.max(0, capacity - sesBookings.length);
                 const isSelected = activeSession?.id === ses.id;
+                const hourNum = parseInt(ses.startTime.split(":")[0] || "18", 10);
+                const isMorning = (ses.timeBlock || (hourNum < 13 ? "manana" : "tarde")) === "manana";
 
                 return (
                   <tr
@@ -1012,9 +1176,20 @@ export function AdminCRMDashboard({
                       </p>
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-stone-900">
-                      {ses.startTime} hrs
-                      <span className="block text-[10px] font-normal text-stone-400">
-                        {ses.date === "2026-10-19" ? "Hoy" : "Mañana"}
+                      <div className="flex items-center gap-1.5">
+                        <span>{ses.startTime} hrs</span>
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[9px] font-sans font-bold ${
+                            isMorning
+                              ? "bg-amber-100 text-amber-900"
+                              : "bg-stone-200 text-stone-800"
+                          }`}
+                        >
+                          {isMorning ? "☀️ Mañana" : "🌙 Tarde"}
+                        </span>
+                      </div>
+                      <span className="block text-[10px] font-sans font-semibold text-stone-500 mt-0.5">
+                        {ses.dayOfWeek || "Martes"}
                       </span>
                     </td>
                     <td className="py-3 px-3">
