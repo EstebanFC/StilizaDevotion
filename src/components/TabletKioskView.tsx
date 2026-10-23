@@ -17,6 +17,7 @@ import {
   Keyboard,
   PartyPopper,
   QrCode,
+  RefreshCw,
   ScanLine,
   Sparkles,
   UserCheck,
@@ -69,10 +70,35 @@ export function TabletKioskView({
   const [activeTab, setActiveTab] = useState<KioskTab>("checkin");
   const [manualToken, setManualToken] = useState("");
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("user");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<KioskCheckInResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("18:25");
+
+  // Restaurar preferencia de cámara (Frontal / Trasera) en la tablet
+  useEffect(() => {
+    try {
+      const savedFacing = localStorage.getItem("sd_kiosk_camera_facing");
+      if (savedFacing === "user" || savedFacing === "environment") {
+        setCameraFacingMode(savedFacing);
+      }
+    } catch {
+      // Ignorar
+    }
+  }, []);
+
+  const handleToggleCameraFacing = (mode?: "user" | "environment") => {
+    setCameraFacingMode((prev) => {
+      const next = mode || (prev === "user" ? "environment" : "user");
+      try {
+        localStorage.setItem("sd_kiosk_camera_facing", next);
+      } catch {
+        // Ignorar
+      }
+      return next;
+    });
+  };
 
   // State for Horarios & Spot Booking on the Kiosk
   const [showAllBranchesSchedule, setShowAllBranchesSchedule] = useState(false);
@@ -175,7 +201,7 @@ export function TabletKioskView({
     }
   }, [externalTriggeredToken]);
 
-  // Camera QR scanning loop
+  // Camera QR scanning loop (soporta Cámara Frontal "user" y Trasera "environment")
   useEffect(() => {
     let stream: MediaStream | null = null;
     let rafId: number | null = null;
@@ -183,7 +209,13 @@ export function TabletKioskView({
     if (cameraActive && activeTab === "checkin") {
       setCameraError(null);
       navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: "environment" } })
+        .getUserMedia({
+          video: { facingMode: { ideal: cameraFacingMode } },
+        })
+        .catch(() =>
+          // Fallback si el navegador o tablet no soporta facingMode específico
+          navigator.mediaDevices.getUserMedia({ video: true })
+        )
         .then((mediaStream) => {
           stream = mediaStream;
           if (videoRef.current) {
@@ -245,7 +277,7 @@ export function TabletKioskView({
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [cameraActive, activeTab]);
+  }, [cameraActive, cameraFacingMode, activeTab]);
 
   const pendingBookings = db.bookings.filter(
     (b) =>
@@ -363,10 +395,39 @@ export function TabletKioskView({
                   <Keyboard className="h-4 w-4" />
                   Escanea tu código QR de WhatsApp en el lector o cámara
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 text-[11px] text-stone-400">
                     <Volume2 className="h-3.5 w-3.5" /> Tono activo
                   </span>
+
+                  {/* Selector de Cámara Frontal vs Trasera para Tablet */}
+                  <div className="inline-flex items-center rounded-xl bg-white/5 p-0.5 border border-white/15">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCameraFacing("user")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                        cameraFacingMode === "user"
+                          ? "bg-amber-400 text-stone-950 shadow"
+                          : "text-stone-300 hover:text-white"
+                      }`}
+                      title="Usar Cámara Frontal de la Tablet (ideal cuando está en soporte/base)"
+                    >
+                      Frontal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCameraFacing("environment")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                        cameraFacingMode === "environment"
+                          ? "bg-amber-400 text-stone-950 shadow"
+                          : "text-stone-300 hover:text-white"
+                      }`}
+                      title="Usar Cámara Trasera de la Tablet"
+                    >
+                      Trasera
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setCameraActive((prev) => !prev)}
@@ -426,10 +487,28 @@ export function TabletKioskView({
                 <div className="mt-4 relative overflow-hidden rounded-2xl border-2 border-amber-400/60 bg-black aspect-video max-h-64 mx-auto flex items-center justify-center">
                   <video
                     ref={videoRef}
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full object-cover ${
+                      cameraFacingMode === "user" ? "scale-x-[-1]" : ""
+                    }`}
                     muted
                   />
                   <canvas ref={canvasRef} className="hidden" />
+
+                  {/* Botón flotante para alternar entre Cámara Frontal y Trasera en vivo */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+                    <span className="rounded-full bg-black/75 border border-white/15 px-3 py-1 text-[11px] font-bold text-amber-300">
+                      📷 Cámara {cameraFacingMode === "user" ? "Frontal" : "Trasera"} Activa
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCameraFacing()}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-[11px] px-3 py-1.5 shadow-lg transition"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Cambiar a {cameraFacingMode === "user" ? "Trasera" : "Frontal"}
+                    </button>
+                  </div>
+
                   <div className="absolute inset-8 border-2 border-dashed border-amber-300/80 rounded-2xl pointer-events-none flex items-center justify-center">
                     <span className="bg-black/70 text-amber-200 text-xs px-3 py-1 rounded-full">
                       Centra el código QR de tu WhatsApp aquí
