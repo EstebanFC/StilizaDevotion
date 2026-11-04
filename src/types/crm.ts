@@ -124,11 +124,22 @@ export interface Client {
   homeBranchName?: string;
   medicalNotes?: string;
   joinedAt: string;
+  needsHumanSupport?: boolean;
   conversationDraft?: {
     branchId?: string;
+    branchName?: string;
     startTime?: string;
     dayOfWeek?: DayOfWeek;
+    targetDate?: string;
+    targetDateLabel?: string;
     sessionId?: string;
+    step?:
+      | "menu"
+      | "select_branch"
+      | "select_date"
+      | "select_session"
+      | "select_spot"
+      | "awaiting_registration";
   };
 }
 
@@ -188,6 +199,13 @@ export interface ChatMessage {
   timestamp: string;
   bookingAttachment?: Booking;
   suggestedSpots?: string[];
+  interactiveType?: "button" | "list";
+  interactiveTitle?: string;
+  interactiveOptions?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+  }>;
 }
 
 export interface KioskCheckInResult {

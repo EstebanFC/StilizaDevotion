@@ -286,16 +286,23 @@ export function WhatsAppAICenter({
                         <p className="font-bold text-xs text-stone-900 truncate">
                           {client.name}
                         </p>
-                        <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${client.creditsRemaining > 2
-                            ? "bg-emerald-100 text-emerald-800"
-                            : client.creditsRemaining > 0
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-rose-100 text-rose-800"
-                            }`}
-                        >
-                          {client.creditsRemaining} créd.
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {client.needsHumanSupport && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-600 text-white animate-pulse">
+                              🚨 Soporte
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${client.creditsRemaining > 2
+                              ? "bg-emerald-100 text-emerald-800"
+                              : client.creditsRemaining > 0
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-rose-100 text-rose-800"
+                              }`}
+                          >
+                            {client.creditsRemaining} créd.
+                          </span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
                         <Phone className="h-2.5 w-2.5" /> {client.phone}
@@ -324,9 +331,20 @@ export function WhatsAppAICenter({
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-bold text-sm">{activeClient?.name}</h4>
-                  <span className="rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] px-2 py-0.5 font-semibold">
-                    {activeClient?.creditsRemaining} créditos activos
-                  </span>
+                  {activeClient?.needsHumanSupport ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSend("opt_resume_bot")}
+                      className="rounded-full bg-rose-500 hover:bg-rose-400 text-white text-[10px] font-bold px-2.5 py-0.5 transition flex items-center gap-1 shadow-sm"
+                      title="Clic para reanudar el Bot IA"
+                    >
+                      🚨 Requiere Soporte · Clic para Reanudar Bot
+                    </button>
+                  ) : (
+                    <span className="rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] px-2 py-0.5 font-semibold">
+                      {activeClient?.creditsRemaining} créditos activos
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-emerald-100/80">
                   {activeClient?.phone} · Atendida por{" "}
@@ -421,6 +439,36 @@ export function WhatsAppAICenter({
                           compact
                           onSimulateScan={onSimulateScanInKiosk}
                         />
+                      </div>
+                    )}
+
+                    {/* Opciones Interactivas Nativas de WhatsApp (Botones y Listas) */}
+                    {msg.interactiveOptions && msg.interactiveOptions.length > 0 && (
+                      <div className="mt-3 space-y-1.5 border-t border-stone-200/80 pt-2.5">
+                        {msg.interactiveTitle && (
+                          <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
+                            {msg.interactiveTitle}
+                          </p>
+                        )}
+                        <div className="flex flex-col gap-1.5">
+                          {msg.interactiveOptions.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => handleSend(opt.id)}
+                              className="w-full text-left rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-400 p-2 text-xs transition group shadow-sm"
+                            >
+                              <span className="font-bold text-stone-900 group-hover:text-emerald-800">
+                                {opt.title}
+                              </span>
+                              {opt.description && (
+                                <span className="block text-[11px] text-stone-500 mt-0.5">
+                                  {opt.description}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 

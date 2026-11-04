@@ -898,7 +898,7 @@
       "id": "msg-1793768670194-bot",
       "clientId": "cli-wa-1793768667303",
       "sender": "bot",
-      "text": "¡Hola! 👋 Bienvenido(a) a **Stiliza & Devotion**.\n\nVemos que tu número (**+5219878710684**) **aún no tiene una cuenta de alumno(a) registrada** en nuestro sistema, por lo que todavía no podemos procesar reservas.\n\nPara crear tu cuenta tienes 2 opciones:\n1️⃣ **Por WhatsApp**: Respóndeme con la palabra **REGISTRARME** seguida de tu Nombre Completo y Correo (ejemplo: *REGISTRARME Esteban Flores esteban@correo.com*).\n2️⃣ **En Estudio / Admin**: Solicita tu alta en recepción o en el Kiosco de tu sucursal para activar tu cuenta y tus tokens.",
+      "text": "¡Hola! 👋 Bienvenido(a) a **Stiliza & Devotion**.\n\nVemos que tu número (**+5219878710684**) **aún no tiene una cuenta de alumno(a) registrada** en nuestro sistema, por lo que todavía no podemos procesar reservas.\n\nPara crear tu cuenta tienes 2 opciones:\n1️⃣ **Por WhatsApp**: Respóndeme con la palabra **REGISTRARME** seguida de tu Nombre Completo y Correo (ejemplo: *REGISTRARME Nombre Apellido correo@correo.com*).\n2️⃣ **En Estudio / Admin**: Solicita tu alta en recepción o en el Kiosco de tu sucursal para activar tu cuenta y tus tokens.",
       "timestamp": "11:04 p.m.",
       "suggestedSpots": [
         "REGISTRARME Esteban Flores esteban@gmail.com"

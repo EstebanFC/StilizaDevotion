@@ -356,20 +356,18 @@ export function AdminCRMDashboard({
                 onClick={() =>
                   setBranchFilter(branchFilter === br.id ? "all" : br.id)
                 }
-                className={`rounded-2xl p-4 text-left border transition-all ${
-                  isSelected
+                className={`rounded-2xl p-4 text-left border transition-all ${isSelected
                     ? "bg-stone-900 text-white border-amber-400 shadow-lg scale-[1.01]"
                     : "bg-[#FAF7F2] hover:bg-stone-100/80 text-stone-800 border-stone-200"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                        br.brand === "Devotion"
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${br.brand === "Devotion"
                           ? "bg-orange-500/20 text-orange-700 border border-orange-400/30"
                           : "bg-amber-500/20 text-amber-800 border border-amber-400/30"
-                      } ${isSelected ? "!text-amber-200 !bg-white/15" : ""}`}
+                        } ${isSelected ? "!text-amber-200 !bg-white/15" : ""}`}
                     >
                       {br.brand === "Devotion" ? (
                         <Flame className="h-3 w-3" />
@@ -380,20 +378,18 @@ export function AdminCRMDashboard({
                     </span>
                     {br.code && (
                       <span
-                        className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-extrabold ${
-                          isSelected
+                        className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-extrabold ${isSelected
                             ? "bg-amber-400 text-stone-950"
                             : "bg-stone-900 text-amber-200"
-                        }`}
+                          }`}
                       >
                         {br.code}
                       </span>
                     )}
                   </div>
                   <span
-                    className={`text-[11px] font-semibold ${
-                      isSelected ? "text-amber-300" : "text-stone-500"
-                    }`}
+                    className={`text-[11px] font-semibold ${isSelected ? "text-amber-300" : "text-stone-500"
+                      }`}
                   >
                     {brSessions.length} clases/sem
                   </span>
@@ -401,9 +397,8 @@ export function AdminCRMDashboard({
 
                 <h3 className="font-extrabold text-sm mt-2">{br.name}</h3>
                 <p
-                  className={`text-[11px] truncate ${
-                    isSelected ? "text-stone-300" : "text-stone-500"
-                  }`}
+                  className={`text-[11px] truncate ${isSelected ? "text-stone-300" : "text-stone-500"
+                    }`}
                 >
                   {br.address}
                 </p>
@@ -413,9 +408,8 @@ export function AdminCRMDashboard({
                     <strong>{brBookings.length}</strong> reservaron
                   </span>
                   <span
-                    className={`font-bold ${
-                      isSelected ? "text-emerald-300" : "text-emerald-700"
-                    }`}
+                    className={`font-bold ${isSelected ? "text-emerald-300" : "text-emerald-700"
+                      }`}
                   >
                     {Math.max(0, totalCapacity - brBookings.length)} disp.
                   </span>
@@ -564,11 +558,10 @@ export function AdminCRMDashboard({
                 <button
                   type="submit"
                   disabled={isSavingPin || newBranchPin.length !== 6}
-                  className={`rounded-xl font-bold text-xs px-5 py-2.5 transition shadow-lg flex items-center gap-2 ${
-                    isSavingPin || newBranchPin.length !== 6
+                  className={`rounded-xl font-bold text-xs px-5 py-2.5 transition shadow-lg flex items-center gap-2 ${isSavingPin || newBranchPin.length !== 6
                       ? "bg-stone-700 text-stone-500 cursor-not-allowed"
                       : "bg-[#7B6E86] hover:bg-[#685B73] text-white shadow-[#7B6E86]/30"
-                  }`}
+                    }`}
                 >
                   {isSavingPin ? (
                     <>
@@ -1118,7 +1111,7 @@ export function AdminCRMDashboard({
               required
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nombre Completo (ej. Esteban Flores)"
+              placeholder="Nombre Completo (ej. Mariana Hernandéz)"
               className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-semibold"
             />
             <input
@@ -1205,33 +1198,30 @@ export function AdminCRMDashboard({
               <button
                 type="button"
                 onClick={() => setBlockFilter("all")}
-                className={`rounded-lg px-2.5 py-1 font-bold transition ${
-                  blockFilter === "all"
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "all"
                     ? "bg-stone-900 text-amber-200"
                     : "text-stone-600 hover:text-stone-900"
-                }`}
+                  }`}
               >
                 Todos los turnos
               </button>
               <button
                 type="button"
                 onClick={() => setBlockFilter("manana")}
-                className={`rounded-lg px-2.5 py-1 font-bold transition ${
-                  blockFilter === "manana"
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "manana"
                     ? "bg-amber-400 text-stone-950"
                     : "text-stone-600 hover:text-stone-900"
-                }`}
+                  }`}
               >
                 ☀️ Mañana (7am - 10am)
               </button>
               <button
                 type="button"
                 onClick={() => setBlockFilter("tarde")}
-                className={`rounded-lg px-2.5 py-1 font-bold transition ${
-                  blockFilter === "tarde"
+                className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "tarde"
                     ? "bg-stone-900 text-amber-200"
                     : "text-stone-600 hover:text-stone-900"
-                }`}
+                  }`}
               >
                 🌙 Tarde (6pm - 8pm)
               </button>
@@ -1244,11 +1234,10 @@ export function AdminCRMDashboard({
           <button
             type="button"
             onClick={() => setDayFilter("all")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-              dayFilter === "all"
+            className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${dayFilter === "all"
                 ? "bg-stone-900 text-amber-200"
                 : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
-            }`}
+              }`}
           >
             Todos los días
           </button>
@@ -1267,11 +1256,10 @@ export function AdminCRMDashboard({
               key={day}
               type="button"
               onClick={() => setDayFilter(day)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                dayFilter === day
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${dayFilter === day
                   ? "bg-stone-900 text-amber-200"
                   : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
-              }`}
+                }`}
             >
               {day}
             </button>
@@ -1443,17 +1431,15 @@ export function AdminCRMDashboard({
                   <tr
                     key={ses.id}
                     onClick={() => setSelectedSessionId(ses.id)}
-                    className={`cursor-pointer transition ${
-                      isSelected ? "bg-amber-50/90" : "hover:bg-stone-50"
-                    }`}
+                    className={`cursor-pointer transition ${isSelected ? "bg-amber-50/90" : "hover:bg-stone-50"
+                      }`}
                   >
                     <td className="py-3 px-3">
                       <span
-                        className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                          ses.brand === "Devotion"
+                        className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold ${ses.brand === "Devotion"
                             ? "bg-orange-100 text-orange-800"
                             : "bg-stone-900 text-amber-200"
-                        }`}
+                          }`}
                       >
                         {ses.brand}
                       </span>
@@ -1465,11 +1451,10 @@ export function AdminCRMDashboard({
                       <div className="flex items-center gap-1.5">
                         <span>{ses.startTime} hrs</span>
                         <span
-                          className={`rounded px-1.5 py-0.5 text-[9px] font-sans font-bold ${
-                            isMorning
+                          className={`rounded px-1.5 py-0.5 text-[9px] font-sans font-bold ${isMorning
                               ? "bg-amber-100 text-amber-900"
                               : "bg-stone-200 text-stone-800"
-                          }`}
+                            }`}
                         >
                           {isMorning ? "☀️ Mañana" : "🌙 Tarde"}
                         </span>
@@ -1710,7 +1695,7 @@ export function AdminCRMDashboard({
               session={activeSession}
               bookings={db.bookings}
               selectedSpotId={null}
-              onSelectSpot={() => {}}
+              onSelectSpot={() => { }}
               isAdminView
               onToggleMaintenance={onToggleMaintenance}
             />
@@ -1745,11 +1730,10 @@ export function AdminCRMDashboard({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
-                          isHot
+                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${isHot
                             ? "bg-orange-100 text-orange-900"
                             : "bg-stone-900 text-amber-200"
-                        }`}
+                          }`}
                       >
                         {bk.spotId}
                       </span>
@@ -1760,16 +1744,16 @@ export function AdminCRMDashboard({
                         {bk.bookedVia === "whatsapp_bot"
                           ? "🤖 Bot IA"
                           : bk.bookedVia === "kiosk_tablet"
-                          ? "📱 Kiosco"
-                          : bk.bookedVia === "wellhub"
-                          ? "🔴 Wellhub"
-                          : bk.bookedVia === "totalpass"
-                          ? "🟢 TotalPass"
-                          : bk.bookedVia === "fitpass"
-                          ? "🔵 FitPass"
-                          : bk.bookedVia === "nessty"
-                          ? "🟣 Nessty"
-                          : "🌐 Web"}
+                            ? "📱 Kiosco"
+                            : bk.bookedVia === "wellhub"
+                              ? "🔴 Wellhub"
+                              : bk.bookedVia === "totalpass"
+                                ? "🟢 TotalPass"
+                                : bk.bookedVia === "fitpass"
+                                  ? "🔵 FitPass"
+                                  : bk.bookedVia === "nessty"
+                                    ? "🟣 Nessty"
+                                    : "🌐 Web"}
                       </span>
                     </div>
                     <p className="text-xs text-stone-600 mt-1 truncate">
@@ -2080,13 +2064,12 @@ export function AdminCRMDashboard({
                   </td>
                   <td className="py-3.5 px-3">
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        client.creditsRemaining > 2
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${client.creditsRemaining > 2
                           ? "bg-emerald-100 text-emerald-800"
                           : client.creditsRemaining > 0
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-rose-100 text-rose-800"
-                      }`}
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
                     >
                       {client.creditsRemaining} tokens
                     </span>

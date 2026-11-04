@@ -85,6 +85,13 @@ export async function sendRealWhatsAppMessage(params: {
   booking?: Booking;
   overrideToken?: string;
   overridePhoneId?: string;
+  interactiveType?: "button" | "list";
+  interactiveTitle?: string;
+  interactiveOptions?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+  }>;
 }): Promise<{ sent: boolean; provider?: string; error?: string; details?: unknown }> {
   const state = readDB();
   const publicBaseUrl = (
@@ -131,7 +138,80 @@ export async function sendRealWhatsAppMessage(params: {
 
   for (const recipient of candidates) {
     try {
-      const textRes = await fetch(
+      let bodyPayload: Record<string, unknown>;
+
+      const hasOptions =
+        params.interactiveOptions && params.interactiveOptions.length > 0;
+
+      if (hasOptions) {
+        const opts = params.interactiveOptions!;
+        const useButton =
+          params.interactiveType === "button" ||
+          (opts.length <= 3 && params.interactiveType !== "list");
+
+        if (useButton && opts.length <= 3) {
+          bodyPayload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: recipient,
+            type: "interactive",
+            interactive: {
+              type: "button",
+              body: { text: params.text.replace(/\*\*/g, "*") },
+              action: {
+                buttons: opts.map((opt) => ({
+                  type: "reply",
+                  reply: {
+                    id: opt.id.slice(0, 256),
+                    title: opt.title.slice(0, 20),
+                  },
+                })),
+              },
+            },
+          };
+        } else {
+          // Interactive List (hasta 10 opciones)
+          bodyPayload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: recipient,
+            type: "interactive",
+            interactive: {
+              type: "list",
+              header: {
+                type: "text",
+                text: (params.interactiveTitle || "Stiliza & Devotion").slice(0, 60),
+              },
+              body: { text: params.text.replace(/\*\*/g, "*") },
+              action: {
+                button: "Ver Opciones",
+                sections: [
+                  {
+                    title: (params.interactiveTitle || "Opciones").slice(0, 24),
+                    rows: opts.slice(0, 10).map((opt) => ({
+                      id: opt.id.slice(0, 200),
+                      title: opt.title.slice(0, 24),
+                      description: opt.description
+                        ? opt.description.slice(0, 72)
+                        : undefined,
+                    })),
+                  },
+                ],
+              },
+            },
+          };
+        }
+      } else {
+        bodyPayload = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: recipient,
+          type: "text",
+          text: { body: params.text.replace(/\*\*/g, "*") },
+        };
+      }
+
+      let textRes = await fetch(
         `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
         {
           method: "POST",
@@ -139,17 +219,42 @@ export async function sendRealWhatsAppMessage(params: {
             Authorization: `Bearer ${metaToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: recipient,
-            type: "text",
-            text: { body: params.text.replace(/\*\*/g, "*") },
-          }),
+          body: JSON.stringify(bodyPayload),
         }
       );
 
-      const textData = await textRes.json();
+      let textData = await textRes.json();
+
+      // Si falló el formato interactivo, intentar fallback inmediato a texto normal
+      if (!textRes.ok && hasOptions) {
+        const plainTextWithChoices =
+          `${params.text.replace(/\*\*/g, "*")}\n\n` +
+          params
+            .interactiveOptions!.map(
+              (o, idx) => `*${idx + 1}.* ${o.title}${o.description ? ` (${o.description})` : ""}`
+            )
+            .join("\n");
+
+        textRes = await fetch(
+          `https://graph.facebook.com/v22.0/${metaPhoneId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${metaToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              recipient_type: "individual",
+              to: recipient,
+              type: "text",
+              text: { body: plainTextWithChoices },
+            }),
+          }
+        );
+        textData = await textRes.json();
+      }
+
       if (textRes.ok) {
         successfulRecipient = recipient;
         lastErrorData = textData;

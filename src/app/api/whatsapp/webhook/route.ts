@@ -67,9 +67,12 @@ export async function POST(req: NextRequest) {
       if (metaMsg) {
         fromPhone = metaMsg.from || "";
         textBody =
+          metaMsg?.interactive?.list_reply?.id ||
+          metaMsg?.interactive?.button_reply?.id ||
+          metaMsg?.interactive?.list_reply?.title ||
+          metaMsg?.interactive?.button_reply?.title ||
           metaMsg?.text?.body ||
           metaMsg?.button?.text ||
-          metaMsg?.interactive?.button_reply?.title ||
           "";
       }
     }
@@ -118,11 +121,12 @@ export async function POST(req: NextRequest) {
       client = state.clients[0];
     }
 
-    const { state: updatedState, replyMessages } = processAIChatTurn({
-      clientId: client.id,
-      userText: textBody,
-      currentState: state,
-    });
+    const { state: updatedState, replyMessages, adminAlertMessage } =
+      processAIChatTurn({
+        clientId: client.id,
+        userText: textBody,
+        currentState: state,
+      });
 
     const targetPhone = fromPhone || client.phone;
     let lastSendResult: unknown = null;
@@ -147,7 +151,27 @@ export async function POST(req: NextRequest) {
         booking: reply.bookingAttachment,
         overrideToken: activeMetaToken,
         overridePhoneId: activeMetaPhoneId,
+        interactiveType: reply.interactiveType,
+        interactiveTitle: reply.interactiveTitle,
+        interactiveOptions: reply.interactiveOptions,
       });
+    }
+
+    // Si el usuario solicitó hablar con un admin, notificar al teléfono administrativo
+    if (adminAlertMessage) {
+      const adminTarget =
+        (updatedState.aiSettings as unknown as { adminNotificationPhone?: string })
+          ?.adminNotificationPhone || adminAlertMessage.adminPhone;
+      try {
+        await sendRealWhatsAppMessage({
+          toPhone: adminTarget,
+          text: adminAlertMessage.text,
+          overrideToken: activeMetaToken,
+          overridePhoneId: activeMetaPhoneId,
+        });
+      } catch {
+        // Ignorar si falla la alerta secundaria
+      }
     }
 
     (
