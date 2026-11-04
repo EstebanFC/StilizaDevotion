@@ -229,7 +229,7 @@ export function TabletKioskView({
               videoRef.current &&
               canvasRef.current &&
               videoRef.current.readyState ===
-                videoRef.current.HAVE_ENOUGH_DATA
+              videoRef.current.HAVE_ENOUGH_DATA
             ) {
               const video = videoRef.current;
               const canvas = canvasRef.current;
@@ -332,11 +332,10 @@ export function TabletKioskView({
           <button
             type="button"
             onClick={() => setActiveTab("checkin")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-              activeTab === "checkin"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "checkin"
                 ? "bg-amber-400 text-stone-950 shadow"
                 : "text-stone-300 hover:bg-white/10"
-            }`}
+              }`}
           >
             <ScanLine className="h-4 w-4" />
             1. Check-In QR
@@ -345,11 +344,10 @@ export function TabletKioskView({
           <button
             type="button"
             onClick={() => setActiveTab("horarios")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-              activeTab === "horarios"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "horarios"
                 ? "bg-amber-400 text-stone-950 shadow"
                 : "text-stone-300 hover:bg-white/10"
-            }`}
+              }`}
           >
             <Calendar className="h-4 w-4" />
             2. Próximos Horarios & Mapa
@@ -358,11 +356,10 @@ export function TabletKioskView({
           <button
             type="button"
             onClick={() => setActiveTab("paquetes")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-              activeTab === "paquetes"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "paquetes"
                 ? "bg-amber-400 text-stone-950 shadow"
                 : "text-stone-300 hover:bg-white/10"
-            }`}
+              }`}
           >
             <CreditCard className="h-4 w-4" />
             3. Comprar Tokens / Paquetes
@@ -371,11 +368,10 @@ export function TabletKioskView({
           <button
             type="button"
             onClick={() => setActiveTab("eventos")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-              activeTab === "eventos"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "eventos"
                 ? "bg-amber-400 text-stone-950 shadow"
                 : "text-stone-300 hover:bg-white/10"
-            }`}
+              }`}
           >
             <PartyPopper className="h-4 w-4" />
             4. Eventos & Promos ({branchEvents.length})
@@ -405,11 +401,10 @@ export function TabletKioskView({
                     <button
                       type="button"
                       onClick={() => handleToggleCameraFacing("user")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                        cameraFacingMode === "user"
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${cameraFacingMode === "user"
                           ? "bg-amber-400 text-stone-950 shadow"
                           : "text-stone-300 hover:text-white"
-                      }`}
+                        }`}
                       title="Usar Cámara Frontal de la Tablet (ideal cuando está en soporte/base)"
                     >
                       Frontal
@@ -417,11 +412,10 @@ export function TabletKioskView({
                     <button
                       type="button"
                       onClick={() => handleToggleCameraFacing("environment")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                        cameraFacingMode === "environment"
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${cameraFacingMode === "environment"
                           ? "bg-amber-400 text-stone-950 shadow"
                           : "text-stone-300 hover:text-white"
-                      }`}
+                        }`}
                       title="Usar Cámara Trasera de la Tablet"
                     >
                       Trasera
@@ -431,11 +425,10 @@ export function TabletKioskView({
                   <button
                     type="button"
                     onClick={() => setCameraActive((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition border ${
-                      cameraActive
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition border ${cameraActive
                         ? "bg-red-500/20 text-red-200 border-red-400/40"
                         : "bg-white/10 text-stone-100 border-white/15 hover:bg-white/20"
-                    }`}
+                      }`}
                   >
                     {cameraActive ? (
                       <>
@@ -487,9 +480,8 @@ export function TabletKioskView({
                 <div className="mt-4 relative overflow-hidden rounded-2xl border-2 border-amber-400/60 bg-black aspect-video max-h-64 mx-auto flex items-center justify-center">
                   <video
                     ref={videoRef}
-                    className={`w-full h-full object-cover ${
-                      cameraFacingMode === "user" ? "scale-x-[-1]" : ""
-                    }`}
+                    className={`w-full h-full object-cover ${cameraFacingMode === "user" ? "scale-x-[-1]" : ""
+                      }`}
                     muted
                   />
                   <canvas ref={canvasRef} className="hidden" />
@@ -520,19 +512,17 @@ export function TabletKioskView({
 
             {lastResult ? (
               <div
-                className={`rounded-3xl p-6 border-2 transition-all ${
-                  lastResult.success
+                className={`rounded-3xl p-6 border-2 transition-all ${lastResult.success
                     ? "bg-gradient-to-br from-emerald-950/90 via-[#152820] to-stone-950 border-emerald-400/60 shadow-lg"
                     : "bg-gradient-to-br from-rose-950/90 to-stone-950 border-rose-500/50"
-                }`}
+                  }`}
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${
-                      lastResult.success
+                    className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${lastResult.success
                         ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
                         : "bg-rose-500/20 text-rose-300 border border-rose-400/40"
-                    }`}
+                      }`}
                   >
                     {lastResult.success ? (
                       <CheckCircle2 className="h-8 w-8" />
@@ -551,7 +541,7 @@ export function TabletKioskView({
                     </span>
                     <h3 className="text-2xl font-bold text-white mt-1">
                       {lastResult.booking
-                        ? `¡Bienvenida, ${lastResult.booking.clientName}!`
+                        ? `¡Bienvenido(a), ${lastResult.booking.clientName}!`
                         : "Verificación de Acceso"}
                     </h3>
                     <p className="text-sm text-stone-200 mt-1">
@@ -777,11 +767,10 @@ export function TabletKioskView({
                 key={day}
                 type="button"
                 onClick={() => setKioskDayFilter(day)}
-                className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition ${
-                  kioskDayFilter === day
+                className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition ${kioskDayFilter === day
                     ? "bg-amber-400 text-stone-950 shadow-sm"
                     : "bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10"
-                }`}
+                  }`}
               >
                 {day}
               </button>
@@ -805,19 +794,17 @@ export function TabletKioskView({
                     setSelectedSessionId(ses.id);
                     setSelectedSpotId(null);
                   }}
-                  className={`rounded-2xl p-4 text-left border transition ${
-                    isSelected
+                  className={`rounded-2xl p-4 text-left border transition ${isSelected
                       ? "bg-amber-400 text-stone-950 border-amber-300 shadow-lg"
                       : "bg-white/5 hover:bg-white/10 text-white border-white/10"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`text-xs font-extrabold px-2 py-0.5 rounded-lg ${
-                        isSelected
+                      className={`text-xs font-extrabold px-2 py-0.5 rounded-lg ${isSelected
                           ? "bg-stone-950 text-amber-300"
                           : "bg-white/15 text-amber-200"
-                      }`}
+                        }`}
                     >
                       {ses.startTime} hrs
                     </span>
@@ -827,9 +814,8 @@ export function TabletKioskView({
                   </div>
                   <h4 className="font-bold text-sm mt-2">{ses.title}</h4>
                   <p
-                    className={`text-xs mt-0.5 ${
-                      isSelected ? "text-stone-800" : "text-stone-400"
-                    }`}
+                    className={`text-xs mt-0.5 ${isSelected ? "text-stone-800" : "text-stone-400"
+                      }`}
                   >
                     {ses.instructor} · {ses.branchName}
                   </p>

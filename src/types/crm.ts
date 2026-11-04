@@ -233,5 +233,7 @@ export interface CRMDatabaseState {
     reminderMinutesBefore: number;
     cancellationWindowHours: number;
     whatsappWebhookMode: "simulator_ready" | "meta_cloud_api" | "twilio";
+    metaPhoneNumberId?: string;
+    metaAccessToken?: string;
   };
 }

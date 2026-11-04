@@ -1114,6 +1114,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       reminderMinutesBefore: 120,
       cancellationWindowHours: 6,
       whatsappWebhookMode: "simulator_ready",
+      metaPhoneNumberId: "1406671965864277",
     },
   };
 }
