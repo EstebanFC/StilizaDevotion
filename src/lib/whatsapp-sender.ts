@@ -108,15 +108,12 @@ export async function sendRealWhatsAppMessage(params: {
     process.env.WHATSAPP_ACCESS_TOKEN ||
     ""
   ).trim();
-  const envPhoneId =
-    process.env.WHATSAPP_PHONE_NUMBER_ID === "1414880558369692"
-      ? "1391915687338824"
-      : process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const envPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
   const metaPhoneId = (
     runtimePhoneId ||
     envPhoneId ||
-    "1391915687338824"
+    "1406671965864277"
   ).trim();
 
   if (!metaToken) {

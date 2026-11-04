@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
         accessToken || process.env.WHATSAPP_ACCESS_TOKEN || ""
       ).trim();
       const cleanPhoneId = String(
-        phoneNumberId || "1391915687338824"
+        phoneNumberId || "1406671965864277"
       ).trim();
 
       (

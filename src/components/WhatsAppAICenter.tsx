@@ -32,7 +32,7 @@ export function WhatsAppAICenter({
 }: WhatsAppAICenterProps) {
   const configuredPhoneId =
     (db.aiSettings as unknown as { metaPhoneNumberId?: string })
-      ?.metaPhoneNumberId || "1391915687338824";
+      ?.metaPhoneNumberId || "1406671965864277";
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(true);
@@ -47,7 +47,7 @@ export function WhatsAppAICenter({
     const currentId = (
       db.aiSettings as unknown as { metaPhoneNumberId?: string }
     )?.metaPhoneNumberId;
-    if (currentId && currentId !== metaPhoneIdInput && metaPhoneIdInput === "1391915687338824") {
+    if (currentId && currentId !== metaPhoneIdInput && metaPhoneIdInput === "1406671965864277") {
       setMetaPhoneIdInput(currentId);
     }
   }, [db.aiSettings]);
