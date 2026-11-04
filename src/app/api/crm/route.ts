@@ -83,8 +83,61 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "send_chat") {
-      const { clientId, text } = body;
+      const { clientId, text, senderMode } = body;
       const currentDb = await loadStateFromSupabase();
+      const client = currentDb.clients.find((c) => c.id === clientId);
+
+      if (!client) {
+        return NextResponse.json(
+          { success: false, error: "Cliente no encontrado" },
+          { status: 404 }
+        );
+      }
+
+      const activeToken = (
+        currentDb.aiSettings as unknown as { metaAccessToken?: string }
+      )?.metaAccessToken;
+      const activePhoneId = (
+        currentDb.aiSettings as unknown as { metaPhoneNumberId?: string }
+      )?.metaPhoneNumberId;
+
+      // Responder como Administrador / Staff Humano directamente al WhatsApp del alumno
+      if (senderMode === "staff") {
+        const nowTime = new Date().toLocaleTimeString("es-MX", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        const staffMsg = {
+          id: `msg-${Date.now()}-staff`,
+          clientId: client.id,
+          sender: "staff" as const,
+          text: String(text || "").trim(),
+          timestamp: nowTime,
+        };
+
+        currentDb.messages.push(staffMsg);
+        // Al responder como staff, mantenemos el bot en pausa para no interrumpir
+        client.needsHumanSupport = true;
+        await saveStateToSupabase(currentDb);
+
+        // Envío del mensaje real a través de Meta WhatsApp Cloud API
+        const sendRes = await sendRealWhatsAppMessage({
+          toPhone: client.phone,
+          text: staffMsg.text,
+          overrideToken: activeToken,
+          overridePhoneId: activePhoneId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          state: currentDb,
+          sendRes,
+          staffMessage: staffMsg,
+        });
+      }
+
+      // Modo cliente / bot IA tradicional
       const { state, replyMessages } = processAIChatTurn({
         clientId,
         userText: String(text || ""),
@@ -92,30 +145,35 @@ export async function POST(req: NextRequest) {
       });
       await saveStateToSupabase(state);
 
-      const activeToken = (
-        state.aiSettings as unknown as { metaAccessToken?: string }
-      )?.metaAccessToken;
-      const activePhoneId = (
-        state.aiSettings as unknown as { metaPhoneNumberId?: string }
-      )?.metaPhoneNumberId;
-
-      const client = state.clients.find((c) => c.id === clientId);
-      if (client) {
-        for (const reply of replyMessages) {
-          await sendRealWhatsAppMessage({
-            toPhone: client.phone,
-            text: reply.text,
-            booking: reply.bookingAttachment,
-            overrideToken: activeToken,
-            overridePhoneId: activePhoneId,
-          });
-        }
+      for (const reply of replyMessages) {
+        await sendRealWhatsAppMessage({
+          toPhone: client.phone,
+          text: reply.text,
+          booking: reply.bookingAttachment,
+          overrideToken: activeToken,
+          overridePhoneId: activePhoneId,
+          interactiveType: reply.interactiveType,
+          interactiveTitle: reply.interactiveTitle,
+          interactiveOptions: reply.interactiveOptions,
+        });
       }
       return NextResponse.json({
         success: true,
         replyMessages,
         state,
       });
+    }
+
+    if (action === "toggle_client_bot") {
+      const { clientId, paused } = body;
+      const currentDb = await loadStateFromSupabase();
+      const client = currentDb.clients.find((c) => c.id === clientId);
+      if (client) {
+        client.needsHumanSupport =
+          typeof paused === "boolean" ? paused : !client.needsHumanSupport;
+        await saveStateToSupabase(currentDb);
+      }
+      return NextResponse.json({ success: true, state: currentDb });
     }
 
     if (action === "save_meta_credentials") {

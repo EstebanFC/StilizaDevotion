@@ -166,7 +166,11 @@ export default function AdminOnlyPortalPage() {
     if (data.state) setDb(data.state);
   };
 
-  const handleSendWhatsAppMessage = async (clientId: string, text: string) => {
+  const handleSendWhatsAppMessage = async (
+    clientId: string,
+    text: string,
+    senderMode?: "staff" | "client"
+  ) => {
     const res = await fetch("/api/crm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -174,6 +178,7 @@ export default function AdminOnlyPortalPage() {
         action: "send_chat",
         clientId,
         text,
+        senderMode: senderMode || "client",
       }),
     });
     const data = await res.json();

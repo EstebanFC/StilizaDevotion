@@ -4,13 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { CRMDatabaseState } from "@/types/crm";
 import { QRCodePassCard } from "@/components/QRCodePassCard";
 import {
+  AlertCircle,
   Bot,
   CheckCheck,
   Flame,
   MessageSquare,
   Phone,
   Send,
+  ShieldCheck,
   Sparkles,
+  UserCheck,
   Webhook,
   Zap,
 } from "lucide-react";
@@ -19,7 +22,11 @@ interface WhatsAppAICenterProps {
   db: CRMDatabaseState;
   selectedClientId: string;
   onSelectClient: (clientId: string) => void;
-  onSendMessage: (clientId: string, text: string) => Promise<void>;
+  onSendMessage: (
+    clientId: string,
+    text: string,
+    senderMode?: "staff" | "client"
+  ) => Promise<void>;
   onSimulateScanInKiosk: (qrToken: string) => void;
 }
 
@@ -34,6 +41,7 @@ export function WhatsAppAICenter({
     (db.aiSettings as unknown as { metaPhoneNumberId?: string })
       ?.metaPhoneNumberId || "1406671965864277";
   const [inputText, setInputText] = useState("");
+  const [senderRole, setSenderRole] = useState<"staff" | "client">("staff");
   const [sending, setSending] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(true);
   const [metaTokenInput, setMetaTokenInput] = useState("");
@@ -63,13 +71,17 @@ export function WhatsAppAICenter({
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [clientMessages.length, activeClient?.id]);
 
-  const handleSend = async (customText?: string) => {
+  const handleSend = async (
+    customText?: string,
+    overrideMode?: "staff" | "client"
+  ) => {
     const textToSend = (customText ?? inputText).trim();
     if (!textToSend || !activeClient || sending) return;
     setSending(true);
     if (!customText) setInputText("");
+    const modeToUse = overrideMode || (customText ? "client" : senderRole);
     try {
-      await onSendMessage(activeClient.id, textToSend);
+      await onSendMessage(activeClient.id, textToSend, modeToUse);
     } finally {
       setSending(false);
     }
@@ -408,19 +420,38 @@ export function WhatsAppAICenter({
           <div className="flex-1 p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[430px]">
             {clientMessages.map((msg) => {
               const isClient = msg.sender === "client";
+              const isStaff = msg.sender === "staff";
+              const alignRight = isClient || isStaff;
+
               return (
                 <div
                   key={msg.id}
-                  className={`flex flex-col ${isClient ? "items-end" : "items-start"
-                    }`}
+                  className={`flex flex-col ${alignRight ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`max-w-xl rounded-2xl px-4 py-3 shadow-sm ${isClient
-                      ? "bg-[#DCF8C6] text-stone-900 rounded-br-none"
-                      : "bg-white text-stone-800 rounded-bl-none border border-stone-200/60"
-                      }`}
+                    className={`max-w-xl rounded-2xl px-4 py-3 shadow-sm ${
+                      isStaff
+                        ? "bg-[#584D63] text-white rounded-br-none border border-[#7B6E86]/40"
+                        : isClient
+                        ? "bg-[#DCF8C6] text-stone-900 rounded-br-none"
+                        : "bg-white text-stone-800 rounded-bl-none border border-stone-200/60"
+                    }`}
                   >
-                    {!isClient && (
+                    {isStaff && (
+                      <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-amber-200">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Administrador (Atención Humana Directa)
+                      </div>
+                    )}
+
+                    {isClient && (
+                      <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-emerald-800">
+                        <Phone className="h-3 w-3" />
+                        {activeClient?.name} (WhatsApp)
+                      </div>
+                    )}
+
+                    {!isClient && !isStaff && (
                       <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-emerald-800">
                         <Bot className="h-3.5 w-3.5" />
                         {db.aiSettings.botName}
@@ -455,7 +486,7 @@ export function WhatsAppAICenter({
                             <button
                               key={opt.id}
                               type="button"
-                              onClick={() => handleSend(opt.id)}
+                              onClick={() => handleSend(opt.id, "client")}
                               className="w-full text-left rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-400 p-2 text-xs transition group shadow-sm"
                             >
                               <span className="font-bold text-stone-900 group-hover:text-emerald-800">
@@ -479,7 +510,7 @@ export function WhatsAppAICenter({
                           <button
                             key={chip}
                             type="button"
-                            onClick={() => handleSend(chip)}
+                            onClick={() => handleSend(chip, "client")}
                             className="rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-semibold text-xs px-3 py-1.5 transition"
                           >
                             {chip}
@@ -488,15 +519,92 @@ export function WhatsAppAICenter({
                       </div>
                     )}
 
-                    <div className="mt-1.5 flex items-center justify-end gap-1 text-[10px] text-stone-400">
+                    <div
+                      className={`mt-1.5 flex items-center justify-end gap-1 text-[10px] ${
+                        isStaff ? "text-stone-300" : "text-stone-400"
+                      }`}
+                    >
                       <span>{msg.timestamp}</span>
-                      <CheckCheck className="h-3.5 w-3.5 text-sky-500" />
+                      <CheckCheck
+                        className={`h-3.5 w-3.5 ${
+                          isStaff ? "text-amber-300" : "text-sky-500"
+                        }`}
+                      />
                     </div>
                   </div>
                 </div>
               );
             })}
             <div ref={chatBottomRef} />
+          </div>
+
+          {/* Barra de Control de Modo y Pausa del Bot */}
+          <div className="bg-[#E6E1D8] px-4 py-2 flex flex-wrap items-center justify-between gap-2 border-t border-stone-300">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-stone-700">Responder como:</span>
+              <div className="inline-flex rounded-xl bg-white p-0.5 border border-stone-300 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setSenderRole("staff")}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition ${
+                    senderRole === "staff"
+                      ? "bg-[#584D63] text-white shadow"
+                      : "text-stone-600 hover:text-stone-900"
+                  }`}
+                >
+                  <UserCheck className="h-3.5 w-3.5 text-amber-300" />
+                  Administrador (Tú)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSenderRole("client")}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition ${
+                    senderRole === "client"
+                      ? "bg-[#075E54] text-white shadow"
+                      : "text-stone-600 hover:text-stone-900"
+                  }`}
+                >
+                  <Bot className="h-3.5 w-3.5 text-emerald-300" />
+                  Simulador Alumno (Probar Bot)
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const newPaused = !activeClient?.needsHumanSupport;
+                await fetch("/api/crm", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "toggle_client_bot",
+                    clientId: activeClient?.id,
+                    paused: newPaused,
+                  }),
+                });
+                if (activeClient) {
+                  activeClient.needsHumanSupport = newPaused;
+                }
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition border shadow-sm ${
+                activeClient?.needsHumanSupport
+                  ? "bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100"
+                  : "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+              }`}
+            >
+              {activeClient?.needsHumanSupport ? (
+                <>
+                  <AlertCircle className="h-3.5 w-3.5 text-rose-600 animate-pulse" />
+                  Bot IA en Pausa · Clic para Reanudar
+                </>
+              ) : (
+                <>
+                  <Bot className="h-3.5 w-3.5 text-emerald-700" />
+                  Bot IA Activo · Clic para Pausar
+                </>
+              )}
+            </button>
           </div>
 
           {/* Chat Input Bar */}
@@ -511,15 +619,29 @@ export function WhatsAppAICenter({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder={`Escribe como ${activeClient?.name} (ej. "Quiero reservar la máquina R-05 hoy a las 18:30")...`}
-              className="flex-1 rounded-full bg-white border border-stone-300 px-4 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-emerald-600"
+              placeholder={
+                senderRole === "staff"
+                  ? `Escribe como Administrador para enviar un WhatsApp real a ${activeClient?.name}...`
+                  : `Simula lo que escribe ${activeClient?.name} para probar el Bot IA...`
+              }
+              className="flex-1 rounded-full bg-white border border-stone-300 px-4 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-emerald-600 shadow-inner"
             />
             <button
               type="submit"
               disabled={sending}
-              className="h-10 w-10 rounded-full bg-[#075E54] hover:bg-[#064e46] text-white flex items-center justify-center shrink-0 transition shadow"
+              title={
+                senderRole === "staff"
+                  ? "Enviar mensaje humano real por WhatsApp"
+                  : "Enviar simulación al Bot IA"
+              }
+              className={`h-10 px-4 rounded-full font-bold text-xs flex items-center gap-1.5 shrink-0 transition shadow ${
+                senderRole === "staff"
+                  ? "bg-[#584D63] hover:bg-[#473e50] text-amber-200"
+                  : "bg-[#075E54] hover:bg-[#064e46] text-white"
+              }`}
             >
               <Send className="h-4 w-4" />
+              <span>{senderRole === "staff" ? "Enviar Real" : "Simular"}</span>
             </button>
           </form>
         </div>
