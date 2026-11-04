@@ -749,269 +749,13 @@ export function processAIChatTurn(params: {
   }
 
   // =========================================================================
-  // 4. FLUJO GUIADO DE RESERVACIÓN PASO A PASO
+  // 4. FLUJO GUIADO DE RESERVACIÓN PASO A PASO (ENRUTADOR POR ESTADO)
   // =========================================================================
 
-  // PASO 1: Iniciar Reservación -> Elegir Sucursal
-  if (
-    cleanInput === "opt_book" ||
-    (lower.includes("reservar") && !draft.step) ||
-    (lower.includes("agendar") && !draft.step)
-  ) {
-    client.conversationDraft = { step: "select_branch" };
+  // Reiniciar flujo si el usuario escribe cancelar o reiniciar
+  if (lower === "cancelar" || lower === "reiniciar" || lower === "volver al menu" || lower === "inicio") {
+    client.conversationDraft = {};
     writeDB(state);
-
-    const activeBranches = state.branches.filter(
-      (b) => b.id !== "br-stiliza-campanario" // STCA aún sin lugares
-    );
-
-    const branchListMsg: ChatMessage = {
-      id: `msg-${Date.now()}-bot`,
-      clientId: client.id,
-      sender: "bot",
-      text: `🗓️ **Paso 1 de 4 · Selecciona tu Estudio**\n\n¿En cuál de nuestras sucursales deseas agendar tu clase?`,
-      timestamp: nowTime,
-      interactiveType: "list",
-      interactiveTitle: "Sucursales Disponibles",
-      interactiveOptions: activeBranches.map((b) => ({
-        id: `branch_${b.id}`,
-        title: b.name.slice(0, 24),
-        description:
-          b.brand === "Devotion"
-            ? "Hot Pilates Infrarrojo 38°C"
-            : "Pilates Reformer Boutique",
-      })),
-      suggestedSpots: [
-        "Stiliza San Isidro",
-        "Stiliza Juriquilla",
-        "Devotion Zibatá",
-        "Devotion Juriquilla",
-      ],
-    };
-    state.messages.push(branchListMsg);
-    writeDB(state);
-    return { state, replyMessages: [branchListMsg] };
-  }
-
-  // PASO 2: Se seleccionó una Sucursal -> Elegir Fecha / Calendario
-  const matchedBranchId =
-    cleanInput.startsWith("branch_")
-      ? cleanInput.replace("branch_", "")
-      : detectBranchIdFromText(cleanInput, state);
-
-  if (matchedBranchId || (draft.step === "select_branch" && matchedBranchId)) {
-    const branch = state.branches.find((b) => b.id === matchedBranchId);
-    if (branch) {
-      const upcoming = getUpcomingDays(4);
-      client.conversationDraft = {
-        branchId: branch.id,
-        branchName: branch.name,
-        step: "select_date",
-      };
-      writeDB(state);
-
-      const dateListMsg: ChatMessage = {
-        id: `msg-${Date.now()}-bot`,
-        clientId: client.id,
-        sender: "bot",
-        text: `🗓️ **Paso 2 de 4 · Selecciona el Día**\n\nHas elegido **${branch.name}** (${branch.brand === "Devotion" ? "Hot Pilates 38°C" : "Reformer"
-          }).\n\n¿Para qué día te gustaría reservar tu clase?`,
-        timestamp: nowTime,
-        interactiveType: "list",
-        interactiveTitle: "Calendario de Días",
-        interactiveOptions: upcoming.map((d) => ({
-          id: `date_${d.dateString}_${d.dayOfWeek}`,
-          title: d.shortTitle.slice(0, 24),
-          description: `Clases de ${d.dayOfWeek} en ${branch.name}`,
-        })),
-        suggestedSpots: upcoming.map((d) => d.shortTitle),
-      };
-      state.messages.push(dateListMsg);
-      writeDB(state);
-      return { state, replyMessages: [dateListMsg] };
-    }
-  }
-
-  // PASO 3: Se seleccionó un Día -> Elegir Clase y Horario
-  let selectedDateString: string | null = null;
-  let selectedDayOfWeek: DayOfWeek | null = null;
-
-  if (cleanInput.startsWith("date_")) {
-    const parts = cleanInput.split("_");
-    selectedDateString = parts[1] || null;
-    selectedDayOfWeek = (parts[2] as DayOfWeek) || null;
-  } else if (draft.step === "select_date") {
-    selectedDayOfWeek = detectDayOfWeekFromText(cleanInput);
-    if (selectedDayOfWeek) {
-      const upcoming = getUpcomingDays(4);
-      const match = upcoming.find((u) => u.dayOfWeek === selectedDayOfWeek);
-      selectedDateString = match ? match.dateString : null;
-    }
-  }
-
-  if (selectedDayOfWeek && draft.branchId) {
-    const branch = state.branches.find((b) => b.id === draft.branchId);
-    const daySessions = state.sessions.filter(
-      (s) =>
-        s.branchId === draft.branchId &&
-        (s.dayOfWeek === selectedDayOfWeek || !s.dayOfWeek)
-    );
-
-    if (daySessions.length === 0) {
-      const noClassesMsg: ChatMessage = {
-        id: `msg-${Date.now()}-bot`,
-        clientId: client.id,
-        sender: "bot",
-        text: `En **${branch?.name}** no tenemos clases programadas para el **${selectedDayOfWeek}**.\n\nPor favor elige otro día para ver los horarios disponibles:`,
-        timestamp: nowTime,
-        interactiveType: "list",
-        interactiveTitle: "Elegir Otro Día",
-        interactiveOptions: getUpcomingDays(4).map((d) => ({
-          id: `date_${d.dateString}_${d.dayOfWeek}`,
-          title: d.shortTitle.slice(0, 24),
-          description: `Ver clases de ${d.dayOfWeek}`,
-        })),
-      };
-      state.messages.push(noClassesMsg);
-      writeDB(state);
-      return { state, replyMessages: [noClassesMsg] };
-    }
-
-    client.conversationDraft = {
-      ...draft,
-      dayOfWeek: selectedDayOfWeek,
-      targetDate: selectedDateString || undefined,
-      step: "select_session",
-    };
-    writeDB(state);
-
-    // Calcular cupos libres para cada sesión
-    const sessionOptions = daySessions.slice(0, 10).map((ses) => {
-      const room = state.rooms.find((r) => r.id === ses.roomId);
-      const occupied = new Set(
-        state.bookings
-          .filter(
-            (b) =>
-              b.sessionId === ses.id &&
-              (b.date === selectedDateString || !b.date) &&
-              b.status !== "cancelada"
-          )
-          .map((b) => b.spotId)
-      );
-      const freeCount = room
-        ? room.spots.filter(
-          (s) => !occupied.has(s.id) && s.status !== "maintenance"
-        ).length
-        : 0;
-
-      return {
-        id: `session_${ses.id}`,
-        title: `${ses.startTime} · ${ses.title}`.slice(0, 24),
-        description: `${ses.instructor} · ${freeCount} lugares disponibles`,
-      };
-    });
-
-    const classListMsg: ChatMessage = {
-      id: `msg-${Date.now()}-bot`,
-      clientId: client.id,
-      sender: "bot",
-      text: `🗓️ **Paso 3 de 4 · Selecciona tu Horario**\n\nClases en **${branch?.name}** para el **${selectedDayOfWeek}**:\n\nElige la clase y hora que mejor te acomode:`,
-      timestamp: nowTime,
-      interactiveType: "list",
-      interactiveTitle: "Horarios Disponibles",
-      interactiveOptions: sessionOptions,
-    };
-    state.messages.push(classListMsg);
-    writeDB(state);
-    return { state, replyMessages: [classListMsg] };
-  }
-
-  // PASO 4: Se seleccionó una Sesión -> Elegir Lugar (Máquina / Tapete)
-  let selectedSessionId: string | null = null;
-  if (cleanInput.startsWith("session_")) {
-    selectedSessionId = cleanInput.replace("session_", "");
-  } else if (draft.step === "select_session") {
-    const { startTime } = extractTimeAndStrip(cleanInput);
-    if (startTime && draft.branchId && draft.dayOfWeek) {
-      const match = findOfficialSessionForBranchDayTime(
-        state,
-        draft.branchId,
-        draft.dayOfWeek,
-        startTime
-      );
-      if (match) selectedSessionId = match.id;
-    }
-  }
-
-  if (selectedSessionId) {
-    const targetSession = state.sessions.find(
-      (s) => s.id === selectedSessionId
-    );
-    if (targetSession) {
-      const room = state.rooms.find((r) => r.id === targetSession.roomId);
-      const occupied = new Set(
-        state.bookings
-          .filter(
-            (b) =>
-              b.sessionId === targetSession.id &&
-              (b.date === draft.targetDate || !b.date) &&
-              b.status !== "cancelada"
-          )
-          .map((b) => b.spotId)
-      );
-
-      const freeSpots =
-        room?.spots.filter(
-          (s) => !occupied.has(s.id) && s.status !== "maintenance"
-        ) || [];
-
-      if (freeSpots.length === 0) {
-        const fullMsg: ChatMessage = {
-          id: `msg-${Date.now()}-bot`,
-          clientId: client.id,
-          sender: "bot",
-          text: `⚠️ La clase de **${targetSession.title}** (${format12h(
-            targetSession.startTime
-          )}) está **totalmente llena**.\n\nPor favor elige otro horario para esa sucursal:`,
-          timestamp: nowTime,
-        };
-        state.messages.push(fullMsg);
-        writeDB(state);
-        return { state, replyMessages: [fullMsg] };
-      }
-
-      client.conversationDraft = {
-        ...draft,
-        sessionId: targetSession.id,
-        startTime: targetSession.startTime,
-        step: "select_spot",
-      };
-      writeDB(state);
-
-      const spotOptions = freeSpots.slice(0, 10).map((sp) => ({
-        id: `spot_${sp.id}`,
-        title: `Lugar #${sp.id} (${sp.shortLabel})`.slice(0, 24),
-        description: sp.zone || sp.label || `Lugar #${sp.id}`,
-      }));
-
-      const spotListMsg: ChatMessage = {
-        id: `msg-${Date.now()}-bot`,
-        clientId: client.id,
-        sender: "bot",
-        text: `🗓️ **Paso 4 de 4 · Elige tu Lugar**\n\nClase: **${targetSession.title}**\nHorario: **${format12h(
-          targetSession.startTime
-        )}** (${targetSession.instructor})\n\nSelecciona tu ${targetSession.discipline === "reformer" ? "máquina Reformer" : "tapete Hot Pilates"
-          }:`,
-        timestamp: nowTime,
-        interactiveType: "list",
-        interactiveTitle: "Lugares Disponibles",
-        interactiveOptions: spotOptions,
-        suggestedSpots: freeSpots.slice(0, 4).map((sp) => `Lugar #${sp.id}`),
-      };
-      state.messages.push(spotListMsg);
-      writeDB(state);
-      return { state, replyMessages: [spotListMsg] };
-    }
   }
 
   // PASO 5: Se seleccionó un Lugar -> Confirmar Reserva y Enviar QR
@@ -1090,6 +834,271 @@ export function processAIChatTurn(params: {
       writeDB(tx.state);
       return { state: tx.state, replyMessages: [errReply] };
     }
+  }
+
+  // PASO 4: Se seleccionó una Sesión -> Elegir Lugar (Máquina / Tapete)
+  let selectedSessionId: string | null = null;
+  if (cleanInput.startsWith("session_")) {
+    selectedSessionId = cleanInput.replace("session_", "");
+  } else if (draft.step === "select_session") {
+    const { startTime } = extractTimeAndStrip(cleanInput);
+    if (startTime && draft.branchId && draft.dayOfWeek) {
+      const match = findOfficialSessionForBranchDayTime(
+        state,
+        draft.branchId,
+        draft.dayOfWeek,
+        startTime
+      );
+      if (match) selectedSessionId = match.id;
+    }
+  }
+
+  if (selectedSessionId) {
+    const targetSession = state.sessions.find(
+      (s) => s.id === selectedSessionId
+    );
+    if (targetSession) {
+      const room = state.rooms.find((r) => r.id === targetSession.roomId);
+      const occupied = new Set(
+        state.bookings
+          .filter(
+            (b) =>
+              b.sessionId === targetSession.id &&
+              (b.date === draft.targetDate || !b.date) &&
+              b.status !== "cancelada"
+          )
+          .map((b) => b.spotId)
+      );
+
+      const freeSpots =
+        room?.spots.filter(
+          (s) => !occupied.has(s.id) && s.status !== "maintenance"
+        ) || [];
+
+      if (freeSpots.length === 0) {
+        const fullMsg: ChatMessage = {
+          id: `msg-${Date.now()}-bot`,
+          clientId: client.id,
+          sender: "bot",
+          text: `⚠️ La clase de **${targetSession.title}** (${format12h(
+            targetSession.startTime
+          )}) está **totalmente llena**.\n\nPor favor elige otro horario para esa sucursal:`,
+          timestamp: nowTime,
+        };
+        state.messages.push(fullMsg);
+        writeDB(state);
+        return { state, replyMessages: [fullMsg] };
+      }
+
+      client.conversationDraft = {
+        ...draft,
+        sessionId: targetSession.id,
+        startTime: targetSession.startTime,
+        step: "select_spot",
+      };
+      writeDB(state);
+
+      const spotOptions = freeSpots.slice(0, 10).map((sp) => ({
+        id: `spot_${sp.id}`,
+        title: `Lugar #${sp.id} (${sp.shortLabel})`.slice(0, 24),
+        description: sp.zone || sp.label || `Lugar #${sp.id}`,
+      }));
+
+      const spotListMsg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `🗓️ **Paso 4 de 4 · Elige tu Lugar**\n\nClase: **${targetSession.title}**\nHorario: **${format12h(
+          targetSession.startTime
+        )}** (${targetSession.instructor})\n\nSelecciona tu ${
+          targetSession.discipline === "reformer" ? "máquina Reformer" : "tapete Hot Pilates"
+        }:`,
+        timestamp: nowTime,
+        interactiveType: "list",
+        interactiveTitle: "Lugares Disponibles",
+        interactiveOptions: spotOptions,
+        suggestedSpots: freeSpots.slice(0, 4).map((sp) => `Lugar #${sp.id}`),
+      };
+      state.messages.push(spotListMsg);
+      writeDB(state);
+      return { state, replyMessages: [spotListMsg] };
+    }
+  }
+
+  // PASO 3: Se seleccionó un Día -> Elegir Clase y Horario
+  let selectedDateString: string | null = null;
+  let selectedDayOfWeek: DayOfWeek | null = null;
+
+  if (cleanInput.startsWith("date_")) {
+    const parts = cleanInput.split("_");
+    selectedDateString = parts[1] || null;
+    selectedDayOfWeek = (parts[2] as DayOfWeek) || null;
+  } else if (draft.step === "select_date") {
+    selectedDayOfWeek = detectDayOfWeekFromText(cleanInput);
+    if (selectedDayOfWeek) {
+      const upcoming = getUpcomingDays(4);
+      const match = upcoming.find((u) => u.dayOfWeek === selectedDayOfWeek);
+      selectedDateString = match ? match.dateString : null;
+    }
+  }
+
+  if (selectedDayOfWeek && draft.branchId) {
+    const branch = state.branches.find((b) => b.id === draft.branchId);
+    const daySessions = state.sessions.filter(
+      (s) =>
+        s.branchId === draft.branchId &&
+        (s.dayOfWeek === selectedDayOfWeek || !s.dayOfWeek)
+    );
+
+    if (daySessions.length === 0) {
+      const noClassesMsg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `En **${branch?.name}** no tenemos clases programadas para el **${selectedDayOfWeek}**.\n\nPor favor elige otro día para ver los horarios disponibles:`,
+        timestamp: nowTime,
+        interactiveType: "list",
+        interactiveTitle: "Elegir Otro Día",
+        interactiveOptions: getUpcomingDays(4).map((d) => ({
+          id: `date_${d.dateString}_${d.dayOfWeek}`,
+          title: d.shortTitle.slice(0, 24),
+          description: `Ver clases de ${d.dayOfWeek}`,
+        })),
+      };
+      state.messages.push(noClassesMsg);
+      writeDB(state);
+      return { state, replyMessages: [noClassesMsg] };
+    }
+
+    client.conversationDraft = {
+      ...draft,
+      dayOfWeek: selectedDayOfWeek,
+      targetDate: selectedDateString || undefined,
+      step: "select_session",
+    };
+    writeDB(state);
+
+    // Calcular cupos libres para cada sesión
+    const sessionOptions = daySessions.slice(0, 10).map((ses) => {
+      const room = state.rooms.find((r) => r.id === ses.roomId);
+      const occupied = new Set(
+        state.bookings
+          .filter(
+            (b) =>
+              b.sessionId === ses.id &&
+              (b.date === selectedDateString || !b.date) &&
+              b.status !== "cancelada"
+          )
+          .map((b) => b.spotId)
+      );
+      const freeCount = room
+        ? room.spots.filter(
+            (s) => !occupied.has(s.id) && s.status !== "maintenance"
+          ).length
+        : 0;
+
+      return {
+        id: `session_${ses.id}`,
+        title: `${ses.startTime} · ${ses.title}`.slice(0, 24),
+        description: `${ses.instructor} · ${freeCount} lugares disponibles`,
+      };
+    });
+
+    const classListMsg: ChatMessage = {
+      id: `msg-${Date.now()}-bot`,
+      clientId: client.id,
+      sender: "bot",
+      text: `🗓️ **Paso 3 de 4 · Selecciona tu Horario**\n\nClases en **${branch?.name}** para el **${selectedDayOfWeek}**:\n\nElige la clase y hora que mejor te acomode:`,
+      timestamp: nowTime,
+      interactiveType: "list",
+      interactiveTitle: "Horarios Disponibles",
+      interactiveOptions: sessionOptions,
+    };
+    state.messages.push(classListMsg);
+    writeDB(state);
+    return { state, replyMessages: [classListMsg] };
+  }
+
+  // PASO 2: Se seleccionó una Sucursal -> Elegir Fecha / Calendario
+  let matchedBranchId: string | null = null;
+  if (cleanInput.startsWith("branch_")) {
+    matchedBranchId = cleanInput.replace("branch_", "");
+  } else if (draft.step === "select_branch") {
+    matchedBranchId = detectBranchIdFromText(cleanInput, state);
+  }
+
+  if (matchedBranchId) {
+    const branch = state.branches.find((b) => b.id === matchedBranchId);
+    if (branch) {
+      const upcoming = getUpcomingDays(4);
+      client.conversationDraft = {
+        branchId: branch.id,
+        branchName: branch.name,
+        step: "select_date",
+      };
+      writeDB(state);
+
+      const dateListMsg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `🗓️ **Paso 2 de 4 · Selecciona el Día**\n\nHas elegido **${branch.name}** (${
+          branch.brand === "Devotion" ? "Hot Pilates 38°C" : "Reformer"
+        }).\n\n¿Para qué día te gustaría reservar tu clase?`,
+        timestamp: nowTime,
+        interactiveType: "list",
+        interactiveTitle: "Calendario de Días",
+        interactiveOptions: upcoming.map((d) => ({
+          id: `date_${d.dateString}_${d.dayOfWeek}`,
+          title: d.shortTitle.slice(0, 24),
+          description: `Clases de ${d.dayOfWeek} en ${branch.name}`,
+        })),
+        suggestedSpots: upcoming.map((d) => d.shortTitle),
+      };
+      state.messages.push(dateListMsg);
+      writeDB(state);
+      return { state, replyMessages: [dateListMsg] };
+    }
+  }
+
+  // PASO 1: Iniciar Reservación -> Elegir Sucursal
+  if (
+    cleanInput === "opt_book" ||
+    (!draft.step && (lower.includes("reservar") || lower.includes("agendar")))
+  ) {
+    client.conversationDraft = { step: "select_branch" };
+    writeDB(state);
+
+    const activeBranches = state.branches.filter(
+      (b) => b.id !== "br-stiliza-campanario" // STCA aún sin lugares
+    );
+
+    const branchListMsg: ChatMessage = {
+      id: `msg-${Date.now()}-bot`,
+      clientId: client.id,
+      sender: "bot",
+      text: `🗓️ **Paso 1 de 4 · Selecciona tu Estudio**\n\n¿En cuál de nuestras sucursales deseas agendar tu clase?`,
+      timestamp: nowTime,
+      interactiveType: "list",
+      interactiveTitle: "Sucursales Disponibles",
+      interactiveOptions: activeBranches.map((b) => ({
+        id: `branch_${b.id}`,
+        title: b.name.slice(0, 24),
+        description:
+          b.brand === "Devotion"
+            ? "Hot Pilates Infrarrojo 38°C"
+            : "Pilates Reformer Boutique",
+      })),
+      suggestedSpots: [
+        "Stiliza San Isidro",
+        "Stiliza Juriquilla",
+        "Devotion Zibatá",
+        "Devotion Juriquilla",
+      ],
+    };
+    state.messages.push(branchListMsg);
+    writeDB(state);
+    return { state, replyMessages: [branchListMsg] };
   }
 
   // =========================================================================
