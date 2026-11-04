@@ -493,7 +493,7 @@ export function processAIChatTurn(params: {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `✍️ **Registro en Stiliza & Devotion**\n\nPara darte de alta de inmediato y poder gestionar tus reservas, por favor respóndeme con tu **Nombre Completo** y tu **Correo Electrónico** en un solo mensaje.\n\nEjemplo:\n👉 *Esteban Flores esteban@correo.com*`,
+        text: `✍️ **Registro en Stiliza & Devotion**\n\nPara darte de alta de inmediato y poder gestionar tus reservas, por favor respóndeme con tu **Nombre Completo** y tu **Correo Electrónico** en un solo mensaje.\n\nEjemplo:\n👉 *Rubi Ortiz rubiortiz@correo.com*`,
         timestamp: nowTime,
         suggestedSpots: [`${firstName} mi_correo@gmail.com`],
       };
@@ -635,39 +635,39 @@ export function processAIChatTurn(params: {
     );
     const botReply: ChatMessage = activeBooking
       ? {
-          id: `msg-${Date.now()}-bot`,
-          clientId: client.id,
-          sender: "bot",
-          text: `¡Claro, **${firstName}**! Aquí tienes tu código QR activo para **${activeBooking.sessionTitle}** (${activeBooking.startTime} hrs · ${activeBooking.branchName}) en el **Lugar #${activeBooking.spotId} (${activeBooking.spotLabel})**.\n\nEscanéalo en el Kiosco al llegar al estudio:`,
-          timestamp: nowTime,
-          bookingAttachment: activeBooking,
-        }
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `¡Claro, **${firstName}**! Aquí tienes tu código QR activo para **${activeBooking.sessionTitle}** (${activeBooking.startTime} hrs · ${activeBooking.branchName}) en el **Lugar #${activeBooking.spotId} (${activeBooking.spotLabel})**.\n\nEscanéalo en el Kiosco al llegar al estudio:`,
+        timestamp: nowTime,
+        bookingAttachment: activeBooking,
+      }
       : {
-          id: `msg-${Date.now()}-bot`,
-          clientId: client.id,
-          sender: "bot",
-          text: `Hola **${firstName}**, actualmente no tienes ninguna clase pendiente de check-in.\n\n¿Deseas reservar tu lugar ahora? Tienes **${client.creditsRemaining} tokens** disponibles.`,
-          timestamp: nowTime,
-          interactiveType: "button",
-          interactiveTitle: "Mis Reservas",
-          interactiveOptions: [
-            {
-              id: "opt_book",
-              title: "🗓️ Reservar Clase",
-              description: "Elegir sucursal y horario",
-            },
-            {
-              id: "opt_credits",
-              title: "💳 Mis Tokens",
-              description: "Ver saldo y recargas",
-            },
-            {
-              id: "opt_support",
-              title: "👤 Hablar con Soporte",
-              description: "Atención humana",
-            },
-          ],
-        };
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `Hola **${firstName}**, actualmente no tienes ninguna clase pendiente de check-in.\n\n¿Deseas reservar tu lugar ahora? Tienes **${client.creditsRemaining} tokens** disponibles.`,
+        timestamp: nowTime,
+        interactiveType: "button",
+        interactiveTitle: "Mis Reservas",
+        interactiveOptions: [
+          {
+            id: "opt_book",
+            title: "🗓️ Reservar Clase",
+            description: "Elegir sucursal y horario",
+          },
+          {
+            id: "opt_credits",
+            title: "💳 Mis Tokens",
+            description: "Ver saldo y recargas",
+          },
+          {
+            id: "opt_support",
+            title: "👤 Hablar con Soporte",
+            description: "Atención humana",
+          },
+        ],
+      };
     state.messages.push(botReply);
     writeDB(state);
     return { state, replyMessages: [botReply] };
@@ -685,11 +685,10 @@ export function processAIChatTurn(params: {
       id: `msg-${Date.now()}-bot`,
       clientId: client.id,
       sender: "bot",
-      text: `💳 **Estado de tu Cuenta** · Stiliza & Devotion\n\n• Alumno(a): **${client.name}**\n• Tokens activos: **${client.creditsRemaining} tokens**\n• Paquete: **${client.activePackageName}**\n\n${
-        client.creditsRemaining > 0
-          ? `¡Tienes saldo suficiente para agendar tu próxima clase!`
-          : `Actualmente no tienes tokens para reservar. Puedes recargar tu paquete en el **Kiosco** de tu sucursal o solicitar transferencia en Administración.`
-      }`,
+      text: `💳 **Estado de tu Cuenta** · Stiliza & Devotion\n\n• Alumno(a): **${client.name}**\n• Tokens activos: **${client.creditsRemaining} tokens**\n• Paquete: **${client.activePackageName}**\n\n${client.creditsRemaining > 0
+        ? `¡Tienes saldo suficiente para agendar tu próxima clase!`
+        : `Actualmente no tienes tokens para reservar. Puedes recargar tu paquete en el **Kiosco** de tu sucursal o solicitar transferencia en Administración.`
+        }`,
       timestamp: nowTime,
       interactiveType: "button",
       interactiveTitle: "Tokens y Membresías",
@@ -815,9 +814,8 @@ export function processAIChatTurn(params: {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `🗓️ **Paso 2 de 4 · Selecciona el Día**\n\nHas elegido **${branch.name}** (${
-          branch.brand === "Devotion" ? "Hot Pilates 38°C" : "Reformer"
-        }).\n\n¿Para qué día te gustaría reservar tu clase?`,
+        text: `🗓️ **Paso 2 de 4 · Selecciona el Día**\n\nHas elegido **${branch.name}** (${branch.brand === "Devotion" ? "Hot Pilates 38°C" : "Reformer"
+          }).\n\n¿Para qué día te gustaría reservar tu clase?`,
         timestamp: nowTime,
         interactiveType: "list",
         interactiveTitle: "Calendario de Días",
@@ -902,8 +900,8 @@ export function processAIChatTurn(params: {
       );
       const freeCount = room
         ? room.spots.filter(
-            (s) => !occupied.has(s.id) && s.status !== "maintenance"
-          ).length
+          (s) => !occupied.has(s.id) && s.status !== "maintenance"
+        ).length
         : 0;
 
       return {
@@ -1002,9 +1000,8 @@ export function processAIChatTurn(params: {
         sender: "bot",
         text: `🗓️ **Paso 4 de 4 · Elige tu Lugar**\n\nClase: **${targetSession.title}**\nHorario: **${format12h(
           targetSession.startTime
-        )}** (${targetSession.instructor})\n\nSelecciona tu ${
-          targetSession.discipline === "reformer" ? "máquina Reformer" : "tapete Hot Pilates"
-        }:`,
+        )}** (${targetSession.instructor})\n\nSelecciona tu ${targetSession.discipline === "reformer" ? "máquina Reformer" : "tapete Hot Pilates"
+          }:`,
         timestamp: nowTime,
         interactiveType: "list",
         interactiveTitle: "Lugares Disponibles",
