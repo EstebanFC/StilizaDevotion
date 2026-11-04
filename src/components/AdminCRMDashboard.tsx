@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ClassSession,
   Client,
@@ -23,15 +23,18 @@ import {
   Edit3,
   Flame,
   Ghost,
+  KeyRound,
   PartyPopper,
   Plus,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Search,
   Sparkles,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 
 interface AdminCRMDashboardProps {
@@ -100,6 +103,10 @@ interface AdminCRMDashboardProps {
     address: string;
     kiosksCount: number;
   }) => Promise<void>;
+  onUpdateBranchPin?: (
+    branchId: string,
+    pin: string
+  ) => Promise<{ success: boolean; error?: string }>;
   onRechargeClient: (clientId: string, packageId: string) => Promise<void>;
   onToggleMaintenance: (roomId: string, spotId: string) => Promise<void>;
   onCancelBooking: (bookingId: string) => Promise<void>;
@@ -130,6 +137,7 @@ export function AdminCRMDashboard({
   onDeletePromoEvent,
   onCreateCoach,
   onCreateBranch,
+  onUpdateBranchPin,
   onRechargeClient,
   onToggleMaintenance,
   onCancelBooking,
@@ -160,6 +168,33 @@ export function AdminCRMDashboard({
   const [editingSession, setEditingSession] = useState<ClassSession | null>(
     null
   );
+
+  // Delete Session Confirmation Modal State
+  const [sessionToDelete, setSessionToDelete] = useState<ClassSession | null>(
+    null
+  );
+  const [isDeletingSession, setIsDeletingSession] = useState<boolean>(false);
+
+  // Branch PIN edit state
+  const [editingBranchPin, setEditingBranchPin] = useState<{
+    branchId: string;
+    branchName: string;
+    currentPin: string;
+  } | null>(null);
+  const [newBranchPin, setNewBranchPin] = useState<string>("");
+  const [isSavingPin, setIsSavingPin] = useState<boolean>(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  // Listener para cerrar modal de eliminación con tecla Esc
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && sessionToDelete && !isDeletingSession) {
+        setSessionToDelete(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [sessionToDelete, isDeletingSession]);
 
   // Edit Client Inline Modal State (CRUD Alumnos)
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -385,10 +420,172 @@ export function AdminCRMDashboard({
                     {Math.max(0, totalCapacity - brBookings.length)} disp.
                   </span>
                 </div>
+
+                {/* PIN Exclusivo del Kiosco de la Sucursal */}
+                <div className="mt-2.5 pt-2 border-t border-current/10 flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-1 font-mono">
+                    <KeyRound className="h-3 w-3 text-[#D2C483]" />
+                    <span className="opacity-70 text-[10px]">PIN Kiosco:</span>
+                    <span className="font-extrabold tracking-widest px-1.5 py-0.5 rounded bg-black/20 dark:bg-black/50 text-[#D2C483]">
+                      {br.kioskPin || "123456"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingBranchPin({
+                        branchId: br.id,
+                        branchName: br.name,
+                        currentPin: br.kioskPin || "123456",
+                      });
+                      setNewBranchPin(br.kioskPin || "123456");
+                      setPinError(null);
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-[#7B6E86]/20 hover:bg-[#7B6E86]/40 text-[#D2C483] border border-[#7B6E86]/30 transition"
+                  >
+                    <Edit3 className="h-2.5 w-2.5" /> Cambiar PIN
+                  </button>
+                </div>
               </button>
             );
           })}
         </div>
+
+        {/* Modal de Cambio de PIN de Kiosco por Sucursal */}
+        {editingBranchPin && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-pin-modal-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in"
+            onClick={() => !isSavingPin && setEditingBranchPin(null)}
+          >
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!/^\d{6}$/.test(newBranchPin.trim())) {
+                  setPinError("El PIN debe tener exactamente 6 dígitos numéricos.");
+                  return;
+                }
+                setIsSavingPin(true);
+                setPinError(null);
+                try {
+                  if (onUpdateBranchPin) {
+                    const res = await onUpdateBranchPin(
+                      editingBranchPin.branchId,
+                      newBranchPin.trim()
+                    );
+                    if (!res.success) {
+                      setPinError(res.error || "No se pudo actualizar el PIN.");
+                      return;
+                    }
+                  }
+                  setEditingBranchPin(null);
+                } finally {
+                  setIsSavingPin(false);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md rounded-3xl bg-[#1C1723] text-stone-100 border border-[#7B6E86]/40 shadow-2xl p-6 sm:p-7 space-y-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-[#7B6E86]/25 text-[#D2C483] border border-[#7B6E86]/40 flex items-center justify-center shrink-0">
+                    <KeyRound className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3
+                      id="change-pin-modal-title"
+                      className="text-base font-extrabold text-white tracking-tight"
+                    >
+                      PIN de Kiosco: {editingBranchPin.branchName}
+                    </h3>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Configura el PIN de 6 dígitos que utilizará el personal para activar las tablets en esta sucursal.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSavingPin}
+                  onClick={() => setEditingBranchPin(null)}
+                  className="rounded-xl p-1.5 text-stone-400 hover:text-white hover:bg-white/10 transition"
+                  aria-label="Cerrar modal"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
+                  Nuevo PIN (6 Dígitos Numéricos)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    autoFocus
+                    disabled={isSavingPin}
+                    value={newBranchPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setNewBranchPin(val);
+                      setPinError(null);
+                    }}
+                    placeholder="Ej. 789012"
+                    className="w-full rounded-2xl bg-black/60 border border-[#7B6E86]/40 px-4 py-3.5 text-center text-2xl font-mono font-bold tracking-[0.3em] text-[#D2C483] focus:outline-none focus:ring-2 focus:ring-[#D2C483]"
+                  />
+                </div>
+                <p className="text-[11px] text-stone-400 text-center">
+                  Solo se permiten dígitos del 0 al 9.
+                </p>
+              </div>
+
+              {pinError && (
+                <div
+                  role="alert"
+                  className="rounded-xl bg-rose-950/40 border border-rose-500/30 p-2.5 text-xs text-rose-300 flex items-center gap-2"
+                >
+                  <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+                  <span>{pinError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isSavingPin}
+                  onClick={() => setEditingBranchPin(null)}
+                  className="rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs px-4 py-2.5 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPin || newBranchPin.length !== 6}
+                  className={`rounded-xl font-bold text-xs px-5 py-2.5 transition shadow-lg flex items-center gap-2 ${
+                    isSavingPin || newBranchPin.length !== 6
+                      ? "bg-stone-700 text-stone-500 cursor-not-allowed"
+                      : "bg-[#7B6E86] hover:bg-[#685B73] text-white shadow-[#7B6E86]/30"
+                  }`}
+                >
+                  {isSavingPin ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[#D2C483]" />
+                      <span>Actualizar PIN</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* =====================================================================
@@ -430,13 +627,12 @@ export function AdminCRMDashboard({
             <Ghost className="h-5 w-5 text-stone-600" />
           </div>
           <p className="text-xs text-stone-800 mt-2">
-            👑 <strong>Obsesión Total:</strong> {vipClient?.name} (
-            <strong>{vipClient?.totalAttended} clases</strong> sin fallar).
+            👑 <strong>Obsesión Total:</strong>{" "}
+            {vipClient ? `${vipClient.name} (${vipClient.totalAttended} clases sin fallar)` : "Sin alumnos registrados"}
           </p>
           <p className="text-xs text-rose-700 mt-1.5">
-            👻 <strong>Alerta Fantasma:</strong> {ghostClient?.name} acumula{" "}
-            <strong>{ghostClient?.noShowsCount || 3} no-shows</strong> y suele
-            llegar 5 min tarde.
+            👻 <strong>Alerta Fantasma:</strong>{" "}
+            {ghostClient && ghostClient.noShowsCount ? `${ghostClient.name} acumula ${ghostClient.noShowsCount} no-shows` : "Sin incidencias registradas"}
           </p>
         </div>
 
@@ -540,11 +736,19 @@ export function AdminCRMDashboard({
 
         <button
           type="button"
-          onClick={onResetDemo}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-stone-200/70 hover:bg-stone-200 text-stone-600 text-xs font-medium px-3 py-2 transition"
+          onClick={() => {
+            if (
+              window.confirm(
+                "¿Estás seguro de que deseas reiniciar el sistema desde cero? Se borrarán todos los alumnos, coaches, clases y reservas."
+              )
+            ) {
+              onResetDemo();
+            }
+          }}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-stone-200/70 hover:bg-rose-100 hover:text-rose-800 text-stone-600 text-xs font-semibold px-3 py-2 transition"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Restaurar Demo
+          <RotateCcw className="h-3.5 w-3.5" />
+          Limpiar Todo (Empezar desde 0)
         </button>
       </div>
 
@@ -1320,8 +1524,9 @@ export function AdminCRMDashboard({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDeleteSession(ses.id)}
-                        className="inline-flex items-center rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5"
+                        onClick={() => setSessionToDelete(ses)}
+                        title="Eliminar clase del calendario"
+                        className="inline-flex items-center rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5 transition"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1332,6 +1537,158 @@ export function AdminCRMDashboard({
             </tbody>
           </table>
         </div>
+
+        {/* Modal de Validación / Confirmación al Eliminar Clase */}
+        {sessionToDelete && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-session-modal-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => !isDeletingSession && setSessionToDelete(null)}
+          >
+            <div
+              className="relative w-full max-w-lg rounded-3xl bg-[#1C1613] text-stone-100 border border-amber-500/30 shadow-2xl overflow-hidden p-6 sm:p-7 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-11 w-11 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3
+                      id="delete-session-modal-title"
+                      className="text-base sm:text-lg font-extrabold text-white tracking-tight"
+                    >
+                      ¿Confirmas eliminar esta clase?
+                    </h3>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Esta acción removerá la sesión del calendario y del portal de reservas.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isDeletingSession}
+                  onClick={() => setSessionToDelete(null)}
+                  className="rounded-xl p-1.5 text-stone-400 hover:text-white hover:bg-white/10 transition"
+                  aria-label="Cerrar modal"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Ficha Resumen de la Clase Seleccionada */}
+              {(() => {
+                const affectedBookings = db.bookings.filter(
+                  (b) => b.sessionId === sessionToDelete.id
+                );
+                const room = db.rooms.find((r) => r.id === sessionToDelete.roomId);
+                const branch = db.branches.find((br) => br.id === room?.branchId);
+
+                return (
+                  <div className="rounded-2xl bg-black/40 border border-white/10 p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-bold text-amber-200">
+                        {sessionToDelete.title}
+                      </span>
+                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-stone-300 font-semibold">
+                        {sessionToDelete.dayOfWeek} · {sessionToDelete.startTime} hrs
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs text-stone-300 pt-1">
+                      <div>
+                        <span className="text-stone-500 block text-[10px] uppercase font-bold tracking-wider">
+                          Coach Asignado
+                        </span>
+                        <span className="font-semibold text-white">
+                          {sessionToDelete.instructor}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-stone-500 block text-[10px] uppercase font-bold tracking-wider">
+                          Sala & Sucursal
+                        </span>
+                        <span className="font-semibold text-white truncate block">
+                          {room?.name || sessionToDelete.roomName} · {branch?.name || "Sucursal"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Validación de Alumnas Inscritas en Vivo */}
+                    {affectedBookings.length > 0 ? (
+                      <div className="rounded-xl bg-amber-500/15 border border-amber-500/30 p-3 text-xs text-amber-200 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <span>
+                            {affectedBookings.length} {affectedBookings.length === 1 ? "alumna inscrita actualmente" : "alumnas inscritas actualmente"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                          Al eliminar esta clase, los lugares ocupados en el mapa se desocuparán y las reservas quedarán desvinculadas.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                        <span>No hay alumnas inscritas en esta clase actualmente (0 reservas activas).</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Botones de Confirmación y Cancelación */}
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={isDeletingSession}
+                  onClick={() => setSessionToDelete(null)}
+                  className="w-full sm:w-auto rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-white/20"
+                >
+                  Conservar Clase
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingSession}
+                  onClick={async () => {
+                    if (!sessionToDelete) return;
+                    setIsDeletingSession(true);
+                    try {
+                      await onDeleteSession(sessionToDelete.id);
+                      if (selectedSessionId === sessionToDelete.id) {
+                        const remaining = db.sessions.filter(
+                          (s) => s.id !== sessionToDelete.id
+                        );
+                        if (remaining[0]) {
+                          setSelectedSessionId(remaining[0].id);
+                        }
+                      }
+                      setSessionToDelete(null);
+                    } finally {
+                      setIsDeletingSession(false);
+                    }
+                  }}
+                  className="w-full sm:w-auto rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-extrabold text-xs px-5 py-3 transition shadow-lg shadow-rose-950/40 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                >
+                  {isDeletingSession ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>Eliminando sesión...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Sí, Eliminar Definitivamente</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* =====================================================================
@@ -1779,6 +2136,13 @@ export function AdminCRMDashboard({
                   </td>
                 </tr>
               ))}
+              {filteredClients.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-10 text-stone-400 text-xs">
+                    No hay alumnos registrados aún. Haz clic en <strong>+ Nuevo Alumno(a)</strong> arriba para dar de alta al primero.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

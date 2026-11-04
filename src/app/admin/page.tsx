@@ -7,6 +7,7 @@ import { WhatsAppAICenter } from "@/components/WhatsAppAICenter";
 import { TabletKioskView } from "@/components/TabletKioskView";
 import { AdminCRMDashboard } from "@/components/AdminCRMDashboard";
 import { LoginGateway, SessionUser } from "@/components/LoginGateway";
+import { ThemeToggleButton } from "@/context/ThemeContext";
 import {
   Bot,
   CalendarCheck,
@@ -40,23 +41,49 @@ export default function AdminOnlyPortalPage() {
     null
   );
 
-  // Restaurar sesión de Administrador y pestaña activa al refrescar página
+  // Restaurar sesión de Administrador con validación criptográfica anti-manipulación
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("sd_admin_session_v1");
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser) as SessionUser;
-        if (parsed && parsed.role === "admin") {
-          setAdminUser(parsed);
+    async function restoreSession() {
+      try {
+        const savedUser = localStorage.getItem("sd_admin_session_v1");
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser) as SessionUser;
+          if (parsed && parsed.role === "admin") {
+            // Si tiene token criptográfico, verificarlo contra el servidor
+            if (parsed.token) {
+              const res = await fetch("/api/auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "verify_token",
+                  token: parsed.token,
+                }),
+              });
+              const data = await res.json();
+              if (res.ok && data.valid) {
+                setAdminUser({ ...parsed, ...data.user });
+              } else {
+                // Token alterado o expirado: purgar por seguridad
+                localStorage.removeItem("sd_admin_session_v1");
+                setAdminUser(null);
+              }
+            } else {
+              setAdminUser(parsed);
+            }
+          }
         }
+        const savedTab = localStorage.getItem("sd_admin_module_v1") as AdminModule | null;
+        if (savedTab) {
+          setActiveAdminModule(savedTab);
+        }
+      } catch {
+        // En caso de error de parseo o manipulación maliciosa, purgar
+        localStorage.removeItem("sd_admin_session_v1");
+        setAdminUser(null);
       }
-      const savedTab = localStorage.getItem("sd_admin_module_v1") as AdminModule | null;
-      if (savedTab) {
-        setActiveAdminModule(savedTab);
-      }
-    } catch {
-      // Ignorar errores de localStorage
     }
+
+    restoreSession();
   }, []);
 
   const handleSetAdminUser = (user: SessionUser | null) => {
@@ -202,46 +229,45 @@ export default function AdminOnlyPortalPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-[#FAF7F2]/95 backdrop-blur-md">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-page)] flex flex-col transition-colors duration-200">
+      <header className="sticky top-0 z-30 border-b border-[#7B6E86]/20 bg-[var(--bg-surface)] backdrop-blur-md shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[#231D19] to-[#120E0C] text-amber-200 flex items-center justify-center shadow-sm border border-stone-700">
+              <div className="h-11 w-11 rounded-2xl bg-[#7B6E86] text-[#D2C483] flex items-center justify-center shadow-sm border border-[#7B6E86]/40">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-extrabold tracking-tight text-stone-900">
+                  <h1 className="text-lg font-extrabold tracking-tight">
                     STILIZA & DEVOTION · ADMIN OS
                   </h1>
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900">
-                    <Sparkles className="h-2.5 w-2.5" /> 6 Sucursales &{" "}
-                    <Flame className="h-2.5 w-2.5 text-orange-600" /> Channel
-                    Manager
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#7B6E86]/15 border border-[#7B6E86]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7B6E86] dark:text-[#D2C483]">
+                    <Sparkles className="h-2.5 w-2.5 text-[#D2C483]" /> 6 Sucursales &{" "}
+                    <Flame className="h-2.5 w-2.5 text-[#7B6E86]" /> Channel Manager
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
                     En Vivo
                   </span>
                 </div>
-                <p className="text-xs text-stone-500">{adminUser.label}</p>
+                <p className="text-xs text-stone-500 dark:text-[#A89E96]">{adminUser.label}</p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <nav className="flex flex-wrap items-center gap-1.5 bg-stone-200/75 p-1.5 rounded-2xl">
+            <nav className="flex flex-wrap items-center gap-1.5 bg-stone-200/60 dark:bg-black/40 p-1.5 rounded-2xl border border-[#7B6E86]/15">
               <button
                 type="button"
                 onClick={() => handleChangeAdminModule("admin_crm")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "admin_crm"
-                    ? "bg-stone-900 text-amber-200 shadow-sm"
-                    : "text-stone-700 hover:bg-white/60"
+                    ? "bg-[#7B6E86] text-white shadow-sm"
+                    : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
-                <LayoutDashboard className="h-4 w-4" />
+                <LayoutDashboard className="h-4 w-4 text-[#D2C483]" />
                 1. Control Sucursales & Horarios
               </button>
 
@@ -250,11 +276,11 @@ export default function AdminOnlyPortalPage() {
                 onClick={() => handleChangeAdminModule("whatsapp_ai")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "whatsapp_ai"
-                    ? "bg-[#1A2E26] text-emerald-200 shadow-sm"
-                    : "text-stone-700 hover:bg-white/60"
+                    ? "bg-[#7B6E86] text-white shadow-sm"
+                    : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
-                <Bot className="h-4 w-4" />
+                <Bot className="h-4 w-4 text-[#D2C483]" />
                 2. Bot IA WhatsApp + QR
               </button>
 
@@ -263,11 +289,11 @@ export default function AdminOnlyPortalPage() {
                 onClick={() => handleChangeAdminModule("tablet_kiosk")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "tablet_kiosk"
-                    ? "bg-amber-400 text-stone-950 shadow-sm"
-                    : "text-stone-700 hover:bg-white/60"
+                    ? "bg-[#7B6E86] text-white shadow-sm"
+                    : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
-                <Tablet className="h-4 w-4" />
+                <Tablet className="h-4 w-4 text-[#D2C483]" />
                 3. Simulador Kiosco
               </button>
 
@@ -276,19 +302,21 @@ export default function AdminOnlyPortalPage() {
                 onClick={() => handleChangeAdminModule("client_portal")}
                 className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                   activeAdminModule === "client_portal"
-                    ? "bg-stone-900 text-white shadow-sm"
-                    : "text-stone-700 hover:bg-white/60"
+                    ? "bg-[#7B6E86] text-white shadow-sm"
+                    : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
-                <CalendarCheck className="h-4 w-4" />
+                <CalendarCheck className="h-4 w-4 text-[#D2C483]" />
                 4. Portal Web Alumnos
               </button>
             </nav>
 
+            <ThemeToggleButton />
+
             <button
               type="button"
               onClick={() => handleSetAdminUser(null)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold px-3 py-2.5 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-200 dark:bg-white/10 hover:bg-stone-300 dark:hover:bg-white/20 text-stone-800 dark:text-stone-200 text-xs font-bold px-3 py-2.5 transition border border-[#7B6E86]/20"
             >
               <LogOut className="h-3.5 w-3.5" />
               Cerrar Sesión Admin
@@ -396,6 +424,20 @@ export default function AdminOnlyPortalPage() {
               });
               const data = await res.json();
               if (data.state) setDb(data.state);
+            }}
+            onUpdateBranchPin={async (branchId, pin) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_branch_pin",
+                  branchId,
+                  pin,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return { success: Boolean(data.success), error: data.error };
             }}
             onRechargeClient={handleBuyPackage}
             onToggleMaintenance={async (roomId, spotId) => {

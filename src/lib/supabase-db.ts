@@ -123,6 +123,8 @@ async function syncRelationalTables(state: CRMDatabaseState): Promise<void> {
         `DELETE FROM stiliza_clients WHERE NOT (id = ANY($1::text[]))`,
         [clientIds]
       );
+    } else {
+      await client.query(`DELETE FROM stiliza_clients`);
     }
 
     for (const cl of state.clients) {
@@ -151,6 +153,16 @@ async function syncRelationalTables(state: CRMDatabaseState): Promise<void> {
       );
     }
 
+    if (state.sessions.length > 0) {
+      const sessionIds = state.sessions.map((s) => s.id);
+      await client.query(
+        `DELETE FROM stiliza_sessions WHERE NOT (id = ANY($1::text[]))`,
+        [sessionIds]
+      );
+    } else {
+      await client.query(`DELETE FROM stiliza_sessions`);
+    }
+
     for (const ses of state.sessions) {
       await client.query(
         `INSERT INTO stiliza_sessions (id, title, branch_name, instructor, session_date, start_time, data, updated_at)
@@ -173,6 +185,16 @@ async function syncRelationalTables(state: CRMDatabaseState): Promise<void> {
           JSON.stringify(ses),
         ]
       );
+    }
+
+    if (state.bookings.length > 0) {
+      const bookingIds = state.bookings.map((b) => b.id);
+      await client.query(
+        `DELETE FROM stiliza_bookings WHERE NOT (id = ANY($1::text[]))`,
+        [bookingIds]
+      );
+    } else {
+      await client.query(`DELETE FROM stiliza_bookings`);
     }
 
     for (const bk of state.bookings) {
@@ -229,28 +251,19 @@ export async function loadStateFromSupabase(): Promise<CRMDatabaseState> {
     if (res.rows.length > 0 && res.rows[0].state) {
       const state = res.rows[0].state as CRMDatabaseState;
       const seed = getInitialSeedData();
-      let updated = false;
 
-      // Desvincular el teléfono 9878710684 de la cuenta demo cli-1 si aún lo tenía asignado
-      const demoCli1 = state.clients.find((c) => c.id === "cli-1");
-      if (demoCli1 && demoCli1.phone.replace(/\D/g, "").includes("9878710684")) {
-        demoCli1.phone = "+52 442 501 8821";
-        updated = true;
+      // Asegurar que las sucursales oficiales siempre existan con sus PINs correctos
+      if (!state.branches || state.branches.length === 0) {
+        state.branches = seed.branches;
       }
-      state.branches = seed.branches;
-
-      // Si el estado guardado aún no tiene la matriz oficial de 125 clases del JSON (ses-stsi-lunes-0715),
-      // reemplazar las sesiones de prueba por los horarios oficiales reales de los 6 estudios
-      if (!state.sessions.some((s) => s.id === "ses-stsi-lunes-0715")) {
-        state.sessions = seed.sessions;
-        updated = true;
+      if (!state.rooms || state.rooms.length === 0) {
+        state.rooms = seed.rooms;
+      }
+      if (!state.packages || state.packages.length === 0) {
+        state.packages = seed.packages;
       }
 
-      if (updated) {
-        await saveStateToSupabase(state);
-      } else {
-        writeDB(state);
-      }
+      writeDB(state);
       return state;
     }
 

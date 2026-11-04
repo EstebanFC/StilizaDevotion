@@ -29,6 +29,7 @@ export interface Branch {
   address: string;
   kiosksCount: number;
   monthlyRevenueMXN: number;
+  kioskPin?: string; // PIN de 6 dígitos exclusivo para los Kioscos de esta sucursal
 }
 
 export interface Coach {

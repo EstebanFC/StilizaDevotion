@@ -30,15 +30,27 @@ export function WhatsAppAICenter({
   onSendMessage,
   onSimulateScanInKiosk,
 }: WhatsAppAICenterProps) {
+  const configuredPhoneId =
+    (db.aiSettings as unknown as { metaPhoneNumberId?: string })
+      ?.metaPhoneNumberId || "1391915687338824";
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [showWebhookModal, setShowWebhookModal] = useState(true);
   const [metaTokenInput, setMetaTokenInput] = useState("");
-  const [metaPhoneIdInput, setMetaPhoneIdInput] = useState("1391915687338824");
+  const [metaPhoneIdInput, setMetaPhoneIdInput] = useState(configuredPhoneId);
   const [recipientPhoneInput, setRecipientPhoneInput] =
     useState("+52 987 871 0684");
   const [metaTestStatus, setMetaTestStatus] = useState<string | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const currentId = (
+      db.aiSettings as unknown as { metaPhoneNumberId?: string }
+    )?.metaPhoneNumberId;
+    if (currentId && currentId !== metaPhoneIdInput && metaPhoneIdInput === "1391915687338824") {
+      setMetaPhoneIdInput(currentId);
+    }
+  }, [db.aiSettings]);
 
   const activeClient =
     db.clients.find((c) => c.id === selectedClientId) || db.clients[0];
@@ -206,8 +218,7 @@ export function WhatsAppAICenter({
                   );
                 } else {
                   setMetaTestStatus(
-                    `⚠️ Respuesta de Meta: ${
-                      data?.sendRes?.error || "Verifica haber copiado el token completo."
+                    `⚠️ Respuesta de Meta: ${data?.sendRes?.error || "Verifica haber copiado el token completo."
                     }`
                   );
                 }
@@ -233,7 +244,7 @@ export function WhatsAppAICenter({
           <div className="p-4 border-b border-stone-200 bg-[#FAF7F2]">
             <h4 className="font-bold text-sm text-stone-900 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-emerald-700" />
-              Chats de Alumnas ({db.clients.length})
+              Chats de Alumnos(as) ({db.clients.length})
             </h4>
             <p className="text-xs text-stone-500 mt-0.5">
               Selecciona una alumna para simular o supervisar su chat con el Bot
@@ -242,57 +253,63 @@ export function WhatsAppAICenter({
           </div>
 
           <div className="divide-y divide-stone-100 overflow-y-auto max-h-[560px]">
-            {db.clients.map((client) => {
-              const isSelected = client.id === activeClient?.id;
-              const thread = db.messages.filter(
-                (m) => m.clientId === client.id
-              );
-              const lastMsg = thread[thread.length - 1];
+            {[...db.clients]
+              .sort((a, b) => {
+                const aMsgs = db.messages.filter((m) => m.clientId === a.id);
+                const bMsgs = db.messages.filter((m) => m.clientId === b.id);
+                if (a.isUnregisteredLead && !b.isUnregisteredLead) return -1;
+                if (!a.isUnregisteredLead && b.isUnregisteredLead) return 1;
+                return bMsgs.length - aMsgs.length;
+              })
+              .map((client) => {
+                const isSelected = client.id === activeClient?.id;
+                const thread = db.messages.filter(
+                  (m) => m.clientId === client.id
+                );
+                const lastMsg = thread[thread.length - 1];
 
-              return (
-                <button
-                  key={client.id}
-                  type="button"
-                  onClick={() => onSelectClient(client.id)}
-                  className={`w-full p-3.5 text-left transition flex items-start gap-3 ${
-                    isSelected
+                return (
+                  <button
+                    key={client.id}
+                    type="button"
+                    onClick={() => onSelectClient(client.id)}
+                    className={`w-full p-3.5 text-left transition flex items-start gap-3 ${isSelected
                       ? "bg-[#F3EDE2] border-l-4 border-l-emerald-700"
                       : "hover:bg-stone-50"
-                  }`}
-                >
-                  <div className="h-10 w-10 rounded-full bg-stone-800 text-amber-200 font-bold text-xs flex items-center justify-center shrink-0">
-                    {client.avatarInitials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="font-bold text-xs text-stone-900 truncate">
-                        {client.name}
-                      </p>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          client.creditsRemaining > 2
+                      }`}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-stone-800 text-amber-200 font-bold text-xs flex items-center justify-center shrink-0">
+                      {client.avatarInitials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="font-bold text-xs text-stone-900 truncate">
+                          {client.name}
+                        </p>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${client.creditsRemaining > 2
                             ? "bg-emerald-100 text-emerald-800"
                             : client.creditsRemaining > 0
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-rose-100 text-rose-800"
-                        }`}
-                      >
-                        {client.creditsRemaining} créd.
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                      <Phone className="h-2.5 w-2.5" /> {client.phone}
-                    </p>
-                    {lastMsg && (
-                      <p className="text-xs text-stone-600 truncate mt-1">
-                        {lastMsg.sender === "bot" ? "🤖 " : ""}
-                        {lastMsg.text.replace(/\*\*/g, "")}
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-rose-100 text-rose-800"
+                            }`}
+                        >
+                          {client.creditsRemaining} créd.
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
+                        <Phone className="h-2.5 w-2.5" /> {client.phone}
                       </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+                      {lastMsg && (
+                        <p className="text-xs text-stone-600 truncate mt-1">
+                          {lastMsg.sender === "bot" ? "🤖 " : ""}
+                          {lastMsg.text.replace(/\*\*/g, "")}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
           </div>
         </div>
 
@@ -330,7 +347,7 @@ export function WhatsAppAICenter({
             <span className="text-[11px] font-semibold text-stone-600">
               Agendar rápido por chat:
             </span>
-            {freeReformer.slice(0, 2).map((spot) => (
+            {refSession && freeReformer.slice(0, 2).map((spot) => (
               <button
                 key={spot.id}
                 type="button"
@@ -345,7 +362,7 @@ export function WhatsAppAICenter({
                 Lugar #{spot.id} ({refSession.branchName})
               </button>
             ))}
-            {freeHotMats.slice(0, 2).map((spot) => (
+            {hotSession && freeHotMats.slice(0, 2).map((spot) => (
               <button
                 key={spot.id}
                 type="button"
@@ -376,16 +393,14 @@ export function WhatsAppAICenter({
               return (
                 <div
                   key={msg.id}
-                  className={`flex flex-col ${
-                    isClient ? "items-end" : "items-start"
-                  }`}
+                  className={`flex flex-col ${isClient ? "items-end" : "items-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-xl rounded-2xl px-4 py-3 shadow-sm ${
-                      isClient
-                        ? "bg-[#DCF8C6] text-stone-900 rounded-br-none"
-                        : "bg-white text-stone-800 rounded-bl-none border border-stone-200/60"
-                    }`}
+                    className={`max-w-xl rounded-2xl px-4 py-3 shadow-sm ${isClient
+                      ? "bg-[#DCF8C6] text-stone-900 rounded-br-none"
+                      : "bg-white text-stone-800 rounded-bl-none border border-stone-200/60"
+                      }`}
                   >
                     {!isClient && (
                       <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-emerald-800">

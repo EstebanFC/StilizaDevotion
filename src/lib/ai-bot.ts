@@ -257,11 +257,12 @@ function findOfficialSessionForBranchDayTime(
 export function processAIChatTurn(params: {
   clientId: string;
   userText: string;
+  currentState?: CRMDatabaseState;
 }): {
   state: CRMDatabaseState;
   replyMessages: ChatMessage[];
 } {
-  let state = readDB();
+  let state = params.currentState || readDB();
   const client = state.clients.find((c) => c.id === params.clientId);
   if (!client) {
     return { state, replyMessages: [] };

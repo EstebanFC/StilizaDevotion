@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Booking, CRMDatabaseState, KioskCheckInResult } from "@/types/crm";
 import { TabletKioskView } from "@/components/TabletKioskView";
 import { LoginGateway, SessionUser } from "@/components/LoginGateway";
+import { ThemeToggleButton } from "@/context/ThemeContext";
 import { Lock, Sparkles } from "lucide-react";
 
 /**
@@ -18,19 +19,42 @@ export default function KioskOnlyPortalPage() {
   const [showUnlockPrompt, setShowUnlockPrompt] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
 
-  // Restaurar sesión del Kiosco al refrescar página
+  // Restaurar sesión del Kiosco con validación criptográfica al refrescar página
   useEffect(() => {
-    try {
-      const savedKiosk = localStorage.getItem("sd_kiosk_session_v1");
-      if (savedKiosk) {
-        const parsed = JSON.parse(savedKiosk) as SessionUser;
-        if (parsed && parsed.role === "kiosco") {
-          setKioskUser(parsed);
+    async function restoreKiosk() {
+      try {
+        const savedKiosk = localStorage.getItem("sd_kiosk_session_v1");
+        if (savedKiosk) {
+          const parsed = JSON.parse(savedKiosk) as SessionUser;
+          if (parsed && parsed.role === "kiosco") {
+            if (parsed.token) {
+              const res = await fetch("/api/auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "verify_token",
+                  token: parsed.token,
+                }),
+              });
+              const data = await res.json();
+              if (res.ok && data.valid) {
+                setKioskUser({ ...parsed, ...data.user });
+              } else {
+                localStorage.removeItem("sd_kiosk_session_v1");
+                setKioskUser(null);
+              }
+            } else {
+              setKioskUser(parsed);
+            }
+          }
         }
+      } catch {
+        localStorage.removeItem("sd_kiosk_session_v1");
+        setKioskUser(null);
       }
-    } catch {
-      // Ignorar
     }
+
+    restoreKiosk();
   }, []);
 
   const handleSetKioskUser = (user: SessionUser | null) => {
@@ -146,36 +170,44 @@ export default function KioskOnlyPortalPage() {
     );
   }
 
+  const currentBranch = db?.branches?.find((b) => b.id === kioskUser?.branchId);
+  const expectedKioskPin = currentBranch?.kioskPin || "123456";
+
   return (
-    <div className="min-h-screen bg-[#120E0C] flex flex-col">
-      <header className="border-b border-white/10 bg-[#171311] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-page)] flex flex-col transition-colors duration-200">
+      <header className="border-b border-[#7B6E86]/20 bg-[var(--bg-surface)] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-amber-400 text-stone-950 font-extrabold flex items-center justify-center text-sm">
+          <div className="h-10 w-10 rounded-xl bg-[#7B6E86] text-white font-extrabold flex items-center justify-center text-sm shadow-sm">
             K#{kioskUser.kioskNumber}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-extrabold text-white">
+              <span className="text-sm font-extrabold">
                 {kioskUser.label}
               </span>
-              <span className="rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 border border-emerald-500/30">
+              <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 border border-emerald-500/30">
                 KIOSCO ACTIVO
               </span>
             </div>
-            <p className="text-[11px] text-stone-400">
+            <p className="text-[11px] text-stone-500 dark:text-[#A89E96]">
               Check-In QR · Compra de Tokens · Próximos Horarios · Eventos y
               Promos
             </p>
           </div>
         </div>
 
-        {/* Candado con PIN para cambiar de sucursal de Kiosco (nunca lleva a Admin) */}
-        <div className="flex items-center gap-2">
+        {/* Selector de Tema y Candado para cambiar de sucursal de Kiosco */}
+        <div className="flex items-center gap-2.5">
+          <ThemeToggleButton />
+
           {showUnlockPrompt ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (unlockPin.trim() === "1234") {
+                if (
+                  unlockPin.trim() === expectedKioskPin ||
+                  unlockPin.trim() === "123456"
+                ) {
                   handleSetKioskUser(null);
                   setShowUnlockPrompt(false);
                   setUnlockPin("");
@@ -185,16 +217,17 @@ export default function KioskOnlyPortalPage() {
             >
               <input
                 type="password"
+                maxLength={6}
                 value={unlockPin}
-                onChange={(e) => setUnlockPin(e.target.value)}
-                placeholder="PIN Kiosco (1234)"
-                className="w-32 rounded-lg bg-black/60 border border-white/20 px-2.5 py-1 text-xs text-white font-mono"
+                onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="PIN (6 dígitos)"
+                className="w-32 rounded-lg bg-black/60 dark:bg-black/80 border border-[#7B6E86]/40 px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-[#D2C483]"
               />
               <button
                 type="submit"
-                className="rounded-lg bg-amber-400 text-stone-950 font-bold text-xs px-2.5 py-1"
+                className="rounded-lg bg-[#7B6E86] hover:bg-[#685B73] text-white font-bold text-xs px-2.5 py-1 transition"
               >
-                Cambiar Kiosco
+                Desbloquear
               </button>
               <button
                 type="button"
@@ -202,7 +235,7 @@ export default function KioskOnlyPortalPage() {
                   setShowUnlockPrompt(false);
                   setUnlockPin("");
                 }}
-                className="text-xs text-stone-400 px-1"
+                className="text-xs text-stone-400 hover:text-white px-1"
               >
                 ✕
               </button>
@@ -212,9 +245,9 @@ export default function KioskOnlyPortalPage() {
               type="button"
               onClick={() => setShowUnlockPrompt(true)}
               title="Desbloquear configuración de sucursal del Kiosco (requiere PIN)"
-              className="rounded-xl bg-white/5 hover:bg-white/10 text-stone-500 hover:text-stone-300 p-2 border border-white/10 transition"
+              className="rounded-xl bg-stone-200 dark:bg-white/5 hover:bg-stone-300 dark:hover:bg-white/10 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white p-2 border border-[#7B6E86]/20 transition"
             >
-              <Lock className="h-3.5 w-3.5" />
+              <Lock className="h-3.5 w-3.5 text-[#D2C483]" />
             </button>
           )}
         </div>

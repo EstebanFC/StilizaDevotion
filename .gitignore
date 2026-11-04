@@ -32,3 +32,6 @@ next-env.d.ts
 
 # runtime local json database (if contains temporary tokens)
 /data/crm-store.json
+
+# agent skills
+.agents/

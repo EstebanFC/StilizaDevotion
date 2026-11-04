@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
   title: "Stiliza Devotion · Pilates Reformer & Hot Pilates CRM + Autonomous Frontdesk",
@@ -13,9 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className="min-h-screen bg-[#F6F2EC] text-[#1B1512]">
-        {children}
+    <html lang="es" className="dark">
+      <body className="min-h-screen bg-[var(--bg-page)] text-[var(--text-page)] transition-colors duration-200">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

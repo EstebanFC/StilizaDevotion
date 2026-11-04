@@ -86,7 +86,7 @@ export function getInitialSeedData(): CRMDatabaseState {
   const today = "2026-10-20";
   const tomorrow = "2026-10-21";
 
-  // LAS 6 SUCURSALES OFICIALES DE STILIZA & DEVOTION CON SUS SIGLAS OFICIALES
+  // LAS 6 SUCURSALES OFICIALES DE STILIZA & DEVOTION CON SUS SIGLAS OFICIALES Y PIN DE 6 DÍGITOS
   const branches: Branch[] = [
     {
       id: "br-stiliza-san-isidro",
@@ -96,6 +96,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "San Isidro (STSI) · 5 lugares en fila",
       kiosksCount: 1,
       monthlyRevenueMXN: 165000,
+      kioskPin: "111222",
     },
     {
       id: "br-stiliza-juriquilla",
@@ -105,6 +106,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "Juriquilla (STJU) · 8 lugares en fila",
       kiosksCount: 1,
       monthlyRevenueMXN: 245000,
+      kioskPin: "333444",
     },
     {
       id: "br-stiliza-campanario",
@@ -114,6 +116,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "El Campanario (STCA) · 0 lugares de momento",
       kiosksCount: 1,
       monthlyRevenueMXN: 0,
+      kioskPin: "555666",
     },
     {
       id: "br-devotion-zibata",
@@ -123,6 +126,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "Zibatá (DEZI) · 12 lugares (2 filas con Coach al frente)",
       kiosksCount: 1,
       monthlyRevenueMXN: 310000,
+      kioskPin: "777888",
     },
     {
       id: "br-devotion-juriquilla",
@@ -132,6 +136,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "Juriquilla (DEJU) · 12 lugares (2 filas con Coach al frente)",
       kiosksCount: 1,
       monthlyRevenueMXN: 325000,
+      kioskPin: "999000",
     },
     {
       id: "br-devotion-campanario",
@@ -141,6 +146,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       address: "El Campanario (DECA) · 12 lugares (2 filas con Coach al frente)",
       kiosksCount: 1,
       monthlyRevenueMXN: 340000,
+      kioskPin: "123456",
     },
   ];
 
@@ -1093,15 +1099,15 @@ export function getInitialSeedData(): CRMDatabaseState {
 
   return {
     branches,
-    coaches,
+    coaches: [],
     promosAndEvents,
     aggregators,
     rooms,
     packages,
-    clients,
-    sessions,
-    bookings,
-    messages,
+    clients: [],
+    sessions: [],
+    bookings: [],
+    messages: [],
     aiSettings: {
       botName: "Stiliza & Devotion Concierge IA",
       autoSendWhatsAppQR: true,
@@ -1127,6 +1133,22 @@ export function readDB(): CRMDatabaseState {
     }
     const raw = fs.readFileSync(DB_FILE, "utf-8");
     const parsed = JSON.parse(raw) as CRMDatabaseState;
+    // Asegurar que cada sucursal tenga su PIN de 6 dígitos único
+    const defaultBranchPins: Record<string, string> = {
+      "br-stiliza-san-isidro": "111222",
+      "br-stiliza-juriquilla": "333444",
+      "br-stiliza-campanario": "555666",
+      "br-devotion-zibata": "777888",
+      "br-devotion-juriquilla": "999000",
+      "br-devotion-campanario": "123456",
+    };
+    if (parsed.branches) {
+      parsed.branches.forEach((b) => {
+        if (!b.kioskPin) {
+          b.kioskPin = defaultBranchPins[b.id] || "123456";
+        }
+      });
+    }
     memoryCache = parsed;
     return parsed;
   } catch {

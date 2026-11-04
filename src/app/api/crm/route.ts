@@ -84,11 +84,20 @@ export async function POST(req: NextRequest) {
 
     if (action === "send_chat") {
       const { clientId, text } = body;
+      const currentDb = await loadStateFromSupabase();
       const { state, replyMessages } = processAIChatTurn({
         clientId,
         userText: String(text || ""),
+        currentState: currentDb,
       });
       await saveStateToSupabase(state);
+
+      const activeToken = (
+        state.aiSettings as unknown as { metaAccessToken?: string }
+      )?.metaAccessToken;
+      const activePhoneId = (
+        state.aiSettings as unknown as { metaPhoneNumberId?: string }
+      )?.metaPhoneNumberId;
 
       const client = state.clients.find((c) => c.id === clientId);
       if (client) {
@@ -97,6 +106,8 @@ export async function POST(req: NextRequest) {
             toPhone: client.phone,
             text: reply.text,
             booking: reply.bookingAttachment,
+            overrideToken: activeToken,
+            overridePhoneId: activePhoneId,
           });
         }
       }
@@ -554,10 +565,36 @@ export async function POST(req: NextRequest) {
         address: String(address || "Nueva Ubicación"),
         kiosksCount: Number(kiosksCount) || 1,
         monthlyRevenueMXN: 185000,
+        kioskPin: "123456",
       };
       state.branches.push(newBr);
       await saveStateToSupabase(state);
       return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "update_branch_pin") {
+      const { branchId, pin } = body;
+      const cleanPin = String(pin || "").trim().slice(0, 6);
+      if (!/^\d{6}$/.test(cleanPin)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "El PIN del Kiosco debe contener exactamente 6 dígitos numéricos.",
+          },
+          { status: 400 }
+        );
+      }
+      const state = readDB();
+      const branch = state.branches.find((b) => b.id === branchId);
+      if (!branch) {
+        return NextResponse.json(
+          { success: false, error: "Sucursal no encontrada" },
+          { status: 404 }
+        );
+      }
+      branch.kioskPin = cleanPin;
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, state, updatedBranch: branch });
     }
 
     if (action === "toggle_spot_maintenance") {
@@ -590,8 +627,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, state });
     }
 
-    if (action === "reset_demo") {
+    if (action === "reset_to_zero" || action === "reset_demo") {
+      const currentState = readDB();
       const seed = getInitialSeedData();
+      if (currentState.aiSettings) {
+        seed.aiSettings = {
+          ...seed.aiSettings,
+          ...currentState.aiSettings,
+        };
+      }
       writeDB(seed);
       await saveStateToSupabase(seed);
       return NextResponse.json({ success: true, state: seed });

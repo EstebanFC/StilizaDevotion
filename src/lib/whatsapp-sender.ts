@@ -83,6 +83,8 @@ export async function sendRealWhatsAppMessage(params: {
   toPhone: string;
   text: string;
   booking?: Booking;
+  overrideToken?: string;
+  overridePhoneId?: string;
 }): Promise<{ sent: boolean; provider?: string; error?: string; details?: unknown }> {
   const state = readDB();
   const publicBaseUrl = (
@@ -93,11 +95,13 @@ export async function sendRealWhatsAppMessage(params: {
     : undefined;
 
   const runtimeToken = (
-    state.aiSettings as unknown as { metaAccessToken?: string }
-  )?.metaAccessToken;
+    params.overrideToken ||
+    (state.aiSettings as unknown as { metaAccessToken?: string })?.metaAccessToken
+  );
   const runtimePhoneId = (
-    state.aiSettings as unknown as { metaPhoneNumberId?: string }
-  )?.metaPhoneNumberId;
+    params.overridePhoneId ||
+    (state.aiSettings as unknown as { metaPhoneNumberId?: string })?.metaPhoneNumberId
+  );
 
   const metaToken = (
     runtimeToken ||

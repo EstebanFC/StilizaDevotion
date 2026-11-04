@@ -123,16 +123,32 @@ export async function POST(req: NextRequest) {
     const { state: updatedState, replyMessages } = processAIChatTurn({
       clientId: client.id,
       userText: textBody,
+      currentState: state,
     });
 
     const targetPhone = fromPhone || client.phone;
     let lastSendResult: unknown = null;
+
+    const activeMetaToken = (
+      (updatedState.aiSettings as unknown as { metaAccessToken?: string })
+        ?.metaAccessToken ||
+      (state.aiSettings as unknown as { metaAccessToken?: string })
+        ?.metaAccessToken
+    );
+    const activeMetaPhoneId = (
+      (updatedState.aiSettings as unknown as { metaPhoneNumberId?: string })
+        ?.metaPhoneNumberId ||
+      (state.aiSettings as unknown as { metaPhoneNumberId?: string })
+        ?.metaPhoneNumberId
+    );
 
     for (const reply of replyMessages) {
       lastSendResult = await sendRealWhatsAppMessage({
         toPhone: targetPhone,
         text: reply.text,
         booking: reply.bookingAttachment,
+        overrideToken: activeMetaToken,
+        overridePhoneId: activeMetaPhoneId,
       });
     }
 
