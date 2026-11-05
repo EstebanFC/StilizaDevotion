@@ -621,6 +621,20 @@ export default function AdminOnlyPortalPage() {
               const data = await res.json();
               if (data.state) setDb(data.state);
             }}
+            onCleanDatabase={async () => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "clean_database" }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                error: data.error,
+                message: data.message,
+              };
+            }}
           />
         )}
       </main>

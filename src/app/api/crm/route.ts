@@ -698,6 +698,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, state });
     }
 
+    if (action === "clean_database" || action === "purge_mock_data") {
+      const currentState = await loadStateFromSupabase();
+      // Generar base oficial limpia preservando únicamente las 6 sucursales, salones y configuración
+      const cleanState: typeof currentState = {
+        ...currentState,
+        clients: [],
+        bookings: [],
+        messages: [],
+      };
+      writeDB(cleanState);
+      await saveStateToSupabase(cleanState);
+      return NextResponse.json({
+        success: true,
+        message: "Base de datos limpiada con éxito. Solo se preservaron las 6 sucursales oficiales.",
+        state: cleanState,
+      });
+    }
+
     if (action === "reset_to_zero" || action === "reset_demo") {
       const currentState = readDB();
       const seed = getInitialSeedData();

@@ -117,7 +117,21 @@ function detectBranchIdFromText(
   text: string,
   state: CRMDatabaseState
 ): string | null {
-  const lower = text
+  if (!text) return null;
+  const trimmed = text.trim();
+
+  // Nunca interpretar identificadores técnicos de otros pasos ni horarios como sucursal
+  if (
+    trimmed.startsWith("session_") ||
+    trimmed.startsWith("date_") ||
+    trimmed.startsWith("spot_") ||
+    trimmed.startsWith("opt_") ||
+    /^\d{1,2}:\d{2}/.test(trimmed)
+  ) {
+    return null;
+  }
+
+  const lower = trimmed
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
@@ -840,23 +854,59 @@ export function processAIChatTurn(params: {
   let selectedSessionId: string | null = null;
   if (cleanInput.startsWith("session_")) {
     selectedSessionId = cleanInput.replace("session_", "");
-  } else if (draft.step === "select_session") {
+  } else if (
+    draft.step === "select_session" ||
+    /\b([012]?\d:[0-5]\d)\b/.test(cleanInput)
+  ) {
     const { startTime } = extractTimeAndStrip(cleanInput);
-    if (startTime && draft.branchId && draft.dayOfWeek) {
-      const match = findOfficialSessionForBranchDayTime(
-        state,
-        draft.branchId,
-        draft.dayOfWeek,
-        startTime
-      );
-      if (match) selectedSessionId = match.id;
+    const timeMatch = cleanInput.match(/\b([012]?\d:[0-5]\d)\b/);
+    const searchTime = startTime || (timeMatch ? timeMatch[1] : null);
+
+    if (searchTime) {
+      if (draft.branchId && draft.dayOfWeek) {
+        const match = findOfficialSessionForBranchDayTime(
+          state,
+          draft.branchId,
+          draft.dayOfWeek,
+          searchTime
+        );
+        if (match) selectedSessionId = match.id;
+      }
+
+      if (!selectedSessionId) {
+        const branchMatch =
+          state.sessions.find(
+            (s) =>
+              (!draft.branchId || s.branchId === draft.branchId) &&
+              (!draft.dayOfWeek || s.dayOfWeek === draft.dayOfWeek) &&
+              s.startTime === searchTime
+          ) ||
+          state.sessions.find((s) => s.startTime === searchTime);
+        if (branchMatch) selectedSessionId = branchMatch.id;
+      }
     }
   }
 
   if (selectedSessionId) {
-    const targetSession = state.sessions.find(
+    let targetSession = state.sessions.find(
       (s) => s.id === selectedSessionId
     );
+
+    // Fallback de rescate si el ID viene con formato ses-[code]-[day]-[time]
+    if (!targetSession && selectedSessionId.startsWith("ses-")) {
+      const parts = selectedSessionId.split("-");
+      if (parts.length >= 4) {
+        const branchCode = parts[1];
+        const timeDigits = parts[3];
+        const timeFormatted = `${timeDigits.slice(0, 2)}:${timeDigits.slice(2, 4)}`;
+        targetSession = state.sessions.find(
+          (s) =>
+            s.id.toLowerCase().includes(branchCode) &&
+            s.startTime === timeFormatted
+        );
+      }
+    }
+
     if (targetSession) {
       const room = state.rooms.find((r) => r.id === targetSession.roomId);
       const occupied = new Set(
@@ -922,6 +972,17 @@ export function processAIChatTurn(params: {
       state.messages.push(spotListMsg);
       writeDB(state);
       return { state, replyMessages: [spotListMsg] };
+    } else {
+      const retryMsg: ChatMessage = {
+        id: `msg-${Date.now()}-bot`,
+        clientId: client.id,
+        sender: "bot",
+        text: `⚠️ No encontramos el horario indicado. Por favor elige uno de la lista anterior o escribe *menu* para consultar opciones.`,
+        timestamp: nowTime,
+      };
+      state.messages.push(retryMsg);
+      writeDB(state);
+      return { state, replyMessages: [retryMsg] };
     }
   }
 

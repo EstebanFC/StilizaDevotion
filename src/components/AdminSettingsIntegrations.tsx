@@ -8,9 +8,11 @@ import {
 } from "@/types/crm";
 import { ChannelManagerPanel } from "@/components/ChannelManagerPanel";
 import {
+  AlertTriangle,
   Bot,
   CheckCircle2,
   Copy,
+  Database,
   ExternalLink,
   Flame,
   Globe,
@@ -20,12 +22,14 @@ import {
   MessageSquare,
   Phone,
   Radio,
+  RefreshCw,
   Save,
   Send,
   Shield,
   ShieldCheck,
   Sliders,
   Sparkles,
+  Trash2,
   Webhook,
   Zap,
 } from "lucide-react";
@@ -58,6 +62,11 @@ interface AdminSettingsIntegrationsProps {
     cancellationWindowHours?: number;
     whatsappWebhookMode?: "simulator_ready" | "meta_cloud_api" | "twilio";
   }) => Promise<void>;
+  onCleanDatabase?: () => Promise<{
+    success: boolean;
+    error?: string;
+    message?: string;
+  }>;
 }
 
 export function AdminSettingsIntegrations({
@@ -66,10 +75,54 @@ export function AdminSettingsIntegrations({
   onSyncExternalBooking,
   onSaveMetaCredentials,
   onUpdateAiSettings,
+  onCleanDatabase,
 }: AdminSettingsIntegrationsProps) {
   const [activeSubTab, setActiveSubTab] = useState<
-    "whatsapp" | "channel_manager" | "branch_pins" | "bot_rules"
+    "whatsapp" | "channel_manager" | "branch_pins" | "bot_rules" | "maintenance"
   >("whatsapp");
+
+  // Maintenance & Clean DB state
+  const [isCleaningDb, setIsCleaningDb] = useState(false);
+  const [cleanDbStatus, setCleanDbStatus] = useState<{
+    success?: boolean;
+    msg: string;
+  } | null>(null);
+  const [showConfirmClean, setShowConfirmClean] = useState(false);
+  const [copiedSql, setCopiedSql] = useState<string | null>(null);
+
+  const handleExecuteCleanDb = async () => {
+    if (!onCleanDatabase) return;
+    setIsCleaningDb(true);
+    setCleanDbStatus(null);
+    try {
+      const res = await onCleanDatabase();
+      if (res.success) {
+        setCleanDbStatus({
+          success: true,
+          msg: "¡Base de datos limpiada con éxito! Se han eliminado todos los clientes y reservas ficticias, conservando únicamente las 6 sucursales oficiales.",
+        });
+        setShowConfirmClean(false);
+      } else {
+        setCleanDbStatus({
+          success: false,
+          msg: res.error || "Ocurrió un error al limpiar la base de datos.",
+        });
+      }
+    } catch (e) {
+      setCleanDbStatus({
+        success: false,
+        msg: e instanceof Error ? e.message : "Error al conectar con la API.",
+      });
+    } finally {
+      setIsCleaningDb(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSql(key);
+    setTimeout(() => setCopiedSql(null), 2500);
+  };
 
   // Meta WhatsApp credentials state
   const currentPhoneId =
@@ -267,6 +320,19 @@ export function AdminSettingsIntegrations({
           >
             <Bot className="h-4 w-4" />
             Comportamiento Bot Concierge
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("maintenance")}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+              activeSubTab === "maintenance"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 border border-rose-500/20"
+            }`}
+          >
+            <Database className="h-4 w-4" />
+            Mantenimiento & Reset Supabase
           </button>
         </div>
       </div>
@@ -644,6 +710,173 @@ export function AdminSettingsIntegrations({
               <Save className="h-4 w-4" />
               <span>Guardar Reglas del Bot</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          SUB-TAB 5: MANTENIMIENTO SUPABASE & RESET LIMPIO
+         ========================================================================= */}
+      {activeSubTab === "maintenance" && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Card 1: Limpieza con 1 Clic desde el CRM */}
+          <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-6 shadow-sm space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
+                  Limpieza Automática de Datos de Prueba (1 Clic)
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
+                  Elimina todos los clientes de prueba (ficticios), reservas anteriores y registros de chat en memoria y en Supabase.
+                  <strong className="text-stone-800 dark:text-stone-200"> Se preservan intactas las 6 sucursales oficiales</strong> (Stiliza San Isidro, Stiliza Juriquilla, Stiliza Campanario, Devotion Zibatá, Devotion Juriquilla y Devotion Campanario), la matriz de horarios oficial y tus credenciales de WhatsApp.
+                </p>
+              </div>
+            </div>
+
+            {cleanDbStatus && (
+              <div
+                className={`p-4 rounded-2xl text-xs font-semibold border ${
+                  cleanDbStatus.success
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                    : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300"
+                }`}
+              >
+                {cleanDbStatus.msg}
+              </div>
+            )}
+
+            {!showConfirmClean ? (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmClean(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-5 py-2.5 transition shadow-sm"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Vaciar Clientes & Reservas de Prueba (Solo Conservar Sucursales)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-900/60 space-y-3">
+                <div className="flex items-center gap-2 text-rose-800 dark:text-rose-300 font-bold text-xs">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>¿Confirmas que deseas limpiar los datos de prueba ahora?</span>
+                </div>
+                <p className="text-[11px] text-rose-700 dark:text-rose-400">
+                  Esta acción reiniciará el listado de clientes a 0 y limpiará el tablero de reservas en Supabase para que el estudio quede listo para tus primeros clientes reales.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleExecuteCleanDb}
+                    disabled={isCleaningDb}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 transition"
+                  >
+                    {isCleaningDb ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    )}
+                    <span>Sí, Limpiar Base de Datos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmClean(false)}
+                    disabled={isCleaningDb}
+                    className="rounded-xl bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs px-4 py-2 hover:bg-stone-300 dark:hover:bg-stone-700 transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Explicación del Error y Querys SQL para Supabase Web Editor */}
+          <div className="rounded-3xl bg-stone-900 text-white p-6 shadow-md border border-stone-800 space-y-5">
+            <div>
+              <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-1">
+                <Database className="h-3.5 w-3.5" /> Diagnóstico Supabase SQL Editor
+              </div>
+              <h3 className="text-base font-extrabold text-white">
+                ¿Por qué te salió el error: <span className="text-rose-400 font-mono text-xs">cannot insert multiple commands into a prepared statement</span>?
+              </h3>
+              <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                El botón <strong>Run</strong> de Supabase ejecuta consultas mediante <em>Prepared Statements</em> (declaraciones preparadas de PostgreSQL). Este protocolo no permite enviar múltiples sentencias SQL independientes (<code className="text-amber-300">BEGIN; ...; COMMIT;</code>) en una sola llamada preparada.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-stone-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-stone-200">
+                    Opción A: Bloque PL/pgSQL Atómico (Recomendada en Supabase)
+                  </h4>
+                  <p className="text-[11px] text-stone-400">
+                    Se ejecuta como una sola sentencia dentro de Supabase y no genera el error de prepared statement.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(
+                      `DO $$\nBEGIN\n  DELETE FROM stiliza_bookings;\n  DELETE FROM stiliza_sessions;\n  DELETE FROM stiliza_clients;\n  DELETE FROM stiliza_studio_state WHERE id = 'main_v4';\nEND $$;`,
+                      "sql_do"
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-bold px-3 py-1.5 transition shrink-0"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>{copiedSql === "sql_do" ? "¡Copiado!" : "Copiar SQL"}</span>
+                </button>
+              </div>
+
+              <pre className="rounded-2xl bg-black/60 p-4 font-mono text-xs text-amber-200/90 border border-stone-800 overflow-x-auto leading-relaxed">
+{`DO $$
+BEGIN
+  -- 1. Vaciar reservas y clientes de prueba
+  DELETE FROM stiliza_bookings;
+  DELETE FROM stiliza_clients;
+  DELETE FROM stiliza_sessions;
+  
+  -- 2. Limpiar el estado maestro JSON para regenerar limpio
+  DELETE FROM stiliza_studio_state WHERE id = 'main_v4';
+END $$;`}
+              </pre>
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-stone-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-stone-200">
+                    Opción B: TRUNCATE TABLE Directo en una sola línea
+                  </h4>
+                  <p className="text-[11px] text-stone-400">
+                    Trunca todas las tablas en una única instrucción atómica.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(
+                      `TRUNCATE TABLE stiliza_bookings, stiliza_sessions, stiliza_clients, stiliza_studio_state CASCADE;`,
+                      "sql_truncate"
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-bold px-3 py-1.5 transition shrink-0"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>{copiedSql === "sql_truncate" ? "¡Copiado!" : "Copiar SQL"}</span>
+                </button>
+              </div>
+
+              <pre className="rounded-2xl bg-black/60 p-4 font-mono text-xs text-amber-200/90 border border-stone-800 overflow-x-auto">
+{`TRUNCATE TABLE stiliza_bookings, stiliza_sessions, stiliza_clients, stiliza_studio_state CASCADE;`}
+              </pre>
+            </div>
           </div>
         </div>
       )}
