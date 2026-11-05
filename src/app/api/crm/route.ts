@@ -17,6 +17,7 @@ import {
   ClassSession,
   Client,
   Coach,
+  DayOfWeek,
   StudioPromoEvent,
 } from "@/types/crm";
 
