@@ -390,6 +390,47 @@ export default function AdminOnlyPortalPage() {
               const data = await res.json();
               if (data.state) setDb(data.state);
             }}
+            onCreateSessionsBatch={async (batch) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "create_sessions_batch", batch }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                count: data.count,
+                error: data.error,
+              };
+            }}
+            onBatchUpdateCoach={async (sessionIds, instructor) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "batch_update_sessions_coach",
+                  sessionIds,
+                  instructor,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return { success: Boolean(data.success), error: data.error };
+            }}
+            onBatchDeleteSessions={async (sessionIds) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "batch_delete_sessions",
+                  sessionIds,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return { success: Boolean(data.success), error: data.error };
+            }}
             onUpdateSession={async (payload) => {
               const res = await fetch("/api/crm", {
                 method: "POST",

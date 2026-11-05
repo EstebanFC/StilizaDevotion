@@ -18,6 +18,9 @@ import {
   Building2,
   CalendarPlus,
   CheckCircle2,
+  CheckSquare,
+  Clock,
+  Copy,
   Crown,
   Edit3,
   Flame,
@@ -29,11 +32,14 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   Sparkles,
+  Square,
   Trash2,
   UserPlus,
   Users,
   X,
+  Zap,
 } from "lucide-react";
 
 interface AdminCRMDashboardProps {
@@ -69,6 +75,24 @@ interface AdminCRMDashboardProps {
     isSpecialClass?: boolean;
     specialBadge?: string;
   }) => Promise<void>;
+  onCreateSessionsBatch?: (
+    batch: Array<{
+      title: string;
+      branchId: string;
+      dayOfWeek: DayOfWeek;
+      startTime: string;
+      instructor?: string;
+      isSpecialClass?: boolean;
+      specialBadge?: string;
+    }>
+  ) => Promise<{ success: boolean; count?: number; error?: string }>;
+  onBatchUpdateCoach?: (
+    sessionIds: string[],
+    instructor: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  onBatchDeleteSessions?: (
+    sessionIds: string[]
+  ) => Promise<{ success: boolean; error?: string }>;
   onUpdateSession: (data: {
     sessionId: string;
     title: string;
@@ -130,6 +154,9 @@ export function AdminCRMDashboard({
   onUpdateClient,
   onDeleteClient,
   onCreateSession,
+  onCreateSessionsBatch,
+  onBatchUpdateCoach,
+  onBatchDeleteSessions,
   onUpdateSession,
   onDeleteSession,
   onCreatePromoEvent,
@@ -241,6 +268,203 @@ export function AdminCRMDashboard({
   const [brName, setBrName] = useState("");
   const [brAddress, setBrAddress] = useState("");
   const [brKiosks, setBrKiosks] = useState(2);
+
+  // Agile Batch Session Creator state (Programador Ágil de Clases con Checks)
+  const [sessionCreateMode, setSessionCreateMode] = useState<"batch" | "single">("batch");
+  const [batchBranches, setBatchBranches] = useState<string[]>([
+    "br-devotion-zibata",
+    "br-devotion-juriquilla",
+  ]);
+  const [batchDays, setBatchDays] = useState<DayOfWeek[]>(["Martes"]);
+  const [batchTitle, setBatchTitle] = useState("UPPER BODY");
+  const [batchHours, setBatchHours] = useState<
+    Array<{ id: string; time: string; instructor: string }>
+  >([
+    { id: "h-1", time: "06:00", instructor: db.coaches[0]?.name || "Coach Por Asignar" },
+    { id: "h-2", time: "07:15", instructor: db.coaches[0]?.name || "Coach Por Asignar" },
+    { id: "h-3", time: "08:15", instructor: db.coaches[1]?.name || db.coaches[0]?.name || "Coach Por Asignar" },
+    { id: "h-4", time: "09:15", instructor: db.coaches[1]?.name || db.coaches[0]?.name || "Coach Por Asignar" },
+    { id: "h-5", time: "18:00", instructor: db.coaches[0]?.name || "Coach Por Asignar" },
+  ]);
+  const [customNewHour, setCustomNewHour] = useState("06:30");
+  const [batchIsSpecial, setBatchIsSpecial] = useState(false);
+  const [batchSpecialBadge, setBatchSpecialBadge] = useState("🎧 DJ Live Set");
+  const [batchGlobalCoach, setBatchGlobalCoach] = useState("");
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+  const [batchResultMsg, setBatchResultMsg] = useState<{ success: boolean; text: string } | null>(null);
+
+  // Table batch actions state (Selección Múltiple y Reasignación Rápida)
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  const [tableBatchCoach, setTableBatchCoach] = useState("");
+  const [isProcessingTableBatch, setIsProcessingTableBatch] = useState(false);
+
+  // Preset list of standard studio hours
+  const PRESET_HOURS = [
+    "06:00",
+    "06:15",
+    "06:30",
+    "07:15",
+    "08:15",
+    "09:15",
+    "10:15",
+    "18:00",
+    "19:00",
+    "20:00",
+  ];
+
+  const handleToggleHourPreset = (hour: string) => {
+    const exists = batchHours.some((h) => h.time === hour);
+    if (exists) {
+      setBatchHours(batchHours.filter((h) => h.time !== hour));
+    } else {
+      const newEntry = {
+        id: `h-${Date.now()}-${hour.replace(":", "")}`,
+        time: hour,
+        instructor: batchGlobalCoach || db.coaches[0]?.name || "Coach Por Asignar",
+      };
+      const nextList = [...batchHours, newEntry].sort((a, b) =>
+        a.time.localeCompare(b.time)
+      );
+      setBatchHours(nextList);
+    }
+  };
+
+  const handleAddCustomHour = () => {
+    if (!customNewHour.trim()) return;
+    const clean = customNewHour.trim();
+    if (batchHours.some((h) => h.time === clean)) return;
+    const newEntry = {
+      id: `h-${Date.now()}-${clean.replace(":", "")}`,
+      time: clean,
+      instructor: batchGlobalCoach || db.coaches[0]?.name || "Coach Por Asignar",
+    };
+    const nextList = [...batchHours, newEntry].sort((a, b) =>
+      a.time.localeCompare(b.time)
+    );
+    setBatchHours(nextList);
+  };
+
+  const handleUpdateHourTime = (id: string, newTime: string) => {
+    setBatchHours(
+      batchHours.map((h) => (h.id === id ? { ...h, time: newTime } : h))
+    );
+  };
+
+  const handleUpdateHourCoach = (id: string, newCoach: string) => {
+    setBatchHours(
+      batchHours.map((h) => (h.id === id ? { ...h, instructor: newCoach } : h))
+    );
+  };
+
+  const handleRemoveHour = (id: string) => {
+    setBatchHours(batchHours.filter((h) => h.id !== id));
+  };
+
+  const handleApplyGlobalCoach = (coach: string) => {
+    setBatchGlobalCoach(coach);
+    if (coach) {
+      setBatchHours(batchHours.map((h) => ({ ...h, instructor: coach })));
+    }
+  };
+
+  const handleToggleBranch = (branchId: string) => {
+    if (batchBranches.includes(branchId)) {
+      setBatchBranches(batchBranches.filter((id) => id !== branchId));
+    } else {
+      setBatchBranches([...batchBranches, branchId]);
+    }
+  };
+
+  const handleToggleDay = (day: DayOfWeek) => {
+    if (batchDays.includes(day)) {
+      setBatchDays(batchDays.filter((d) => d !== day));
+    } else {
+      setBatchDays([...batchDays, day]);
+    }
+  };
+
+  const handleSubmitBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (batchBranches.length === 0 || batchDays.length === 0 || batchHours.length === 0) {
+      setBatchResultMsg({
+        success: false,
+        text: "Debes seleccionar al menos una sucursal, un día y un horario.",
+      });
+      return;
+    }
+
+    setIsSubmittingBatch(true);
+    setBatchResultMsg(null);
+
+    try {
+      const batchPayload: Array<{
+        title: string;
+        branchId: string;
+        dayOfWeek: DayOfWeek;
+        startTime: string;
+        instructor?: string;
+        isSpecialClass?: boolean;
+        specialBadge?: string;
+      }> = [];
+
+      for (const branchId of batchBranches) {
+        for (const day of batchDays) {
+          for (const hour of batchHours) {
+            batchPayload.push({
+              title: batchTitle.trim() || "CLASE FIT",
+              branchId,
+              dayOfWeek: day,
+              startTime: hour.time,
+              instructor: hour.instructor || "Coach Por Asignar",
+              isSpecialClass: batchIsSpecial,
+              specialBadge: batchIsSpecial ? batchSpecialBadge : undefined,
+            });
+          }
+        }
+      }
+
+      if (onCreateSessionsBatch) {
+        const res = await onCreateSessionsBatch(batchPayload);
+        if (res.success) {
+          setBatchResultMsg({
+            success: true,
+            text: `¡Éxito! Se programaron ${res.count || batchPayload.length} clases en Supabase correctamente.`,
+          });
+          setTimeout(() => {
+            setActiveDrawer(null);
+            setBatchResultMsg(null);
+          }, 2000);
+        } else {
+          setBatchResultMsg({
+            success: false,
+            text: res.error || "Error al guardar el lote de clases.",
+          });
+        }
+      } else {
+        for (const item of batchPayload) {
+          const room = db.rooms.find((r) => r.branchId === item.branchId) || db.rooms[0];
+          await onCreateSession({
+            title: item.title,
+            roomId: room.id,
+            instructor: item.instructor || "Coach Por Asignar",
+            date: "2026-10-20",
+            dayOfWeek: item.dayOfWeek,
+            startTime: item.startTime,
+            isSpecialClass: item.isSpecialClass,
+            specialBadge: item.specialBadge,
+          });
+        }
+        setActiveDrawer(null);
+      }
+    } catch (err) {
+      setBatchResultMsg({
+        success: false,
+        text: err instanceof Error ? err.message : "Error inesperado al programar.",
+      });
+    } finally {
+      setIsSubmittingBatch(false);
+    }
+  };
 
   const filteredSessions = db.sessions.filter((s) => {
     if (branchFilter !== "all" && s.branchId !== branchFilter) return false;
@@ -809,140 +1033,648 @@ export function AdminCRMDashboard({
         </form>
       )}
 
-      {/* DRAWER: Nueva Clase / Clase Especial */}
+      {/* DRAWER: Programador Ágil de Clases (Por Lote y Checks) */}
       {activeDrawer === "new_session" && (
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!sesTitle.trim()) return;
-            await onCreateSession({
-              title: sesTitle,
-              roomId: sesRoomId,
-              instructor: sesInstructor,
-              date: sesDate,
-              dayOfWeek: sesDayOfWeek,
-              startTime: sesTime,
-              isSpecialClass: sesIsSpecial,
-              specialBadge: sesIsSpecial ? sesBadge : undefined,
-            });
-            setActiveDrawer(null);
-          }}
-          className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-300 dark:border-stone-700 p-6 shadow-md space-y-4"
-        >
-          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
-            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Programar Nueva Clase en Horario de Sucursal (7am-10am o 6pm-8pm · Lunes a Domingo)
-            </h3>
-            <button
-              type="button"
-              onClick={() => setActiveDrawer(null)}
-              className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
-            >
-              Cerrar ✕
-            </button>
+        <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-300 dark:border-stone-700 p-6 shadow-xl space-y-6 animate-in fade-in duration-200">
+          {/* Header con cambio de modo */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 dark:border-stone-800 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">
+                <Zap className="h-3.5 w-3.5" /> Programador Ágil · Admin OS
+              </div>
+              <h3 className="text-lg font-extrabold text-stone-900 dark:text-stone-100">
+                Alta y Programación de Clases
+              </h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                Programa clases en múltiples estudios y días simultáneamente con horarios editables y asignación de coaches por turno.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <div className="inline-flex rounded-xl bg-stone-100 dark:bg-stone-900 p-1 border border-stone-200 dark:border-stone-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSessionCreateMode("batch")}
+                  className={`rounded-lg px-3 py-1.5 font-bold transition flex items-center gap-1.5 ${
+                    sessionCreateMode === "batch"
+                      ? "bg-stone-900 text-amber-300 shadow-sm dark:bg-stone-800"
+                      : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                  }`}
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  Modo Lote con Checks (Rápido)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSessionCreateMode("single")}
+                  className={`rounded-lg px-3 py-1.5 font-bold transition ${
+                    sessionCreateMode === "single"
+                      ? "bg-stone-900 text-amber-300 shadow-sm dark:bg-stone-800"
+                      : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                  }`}
+                >
+                  Clase Individual
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveDrawer(null)}
+                className="rounded-xl p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
+                aria-label="Cerrar programador"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <input
-              type="text"
-              required
-              value={sesTitle}
-              onChange={(e) => setSesTitle(e.target.value)}
-              placeholder="Nombre de la clase"
-              className="sm:col-span-2 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-            />
-            <select
-              value={sesRoomId}
-              onChange={(e) => setSesRoomId(e.target.value)}
-              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-            >
-              {db.rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  [{r.brand}] {r.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sesDayOfWeek}
-              onChange={(e) => setSesDayOfWeek(e.target.value as DayOfWeek)}
-              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-            >
-              {(
-                [
-                  "Lunes",
-                  "Martes",
-                  "Miércoles",
-                  "Jueves",
-                  "Viernes",
-                  "Sábado",
-                  "Domingo",
-                ] as DayOfWeek[]
-              ).map((day) => (
-                <option key={day} value={day}>
-                  Día: {day}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sesTime}
-              onChange={(e) => setSesTime(e.target.value)}
-              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-            >
-              <optgroup label="Mañana Oficial (:15 AM)">
-                <option value="06:15">06:15 AM</option>
-                <option value="07:15">07:15 AM</option>
-                <option value="08:15">08:15 AM</option>
-                <option value="09:15">09:15 AM</option>
-                <option value="10:15">10:15 AM</option>
-              </optgroup>
-              <optgroup label="Tarde/Noche Oficial (PM)">
-                <option value="18:00">18:00 (06:00 PM)</option>
-                <option value="19:00">19:00 (07:00 PM)</option>
-                <option value="20:00">20:00 (08:00 PM)</option>
-              </optgroup>
-            </select>
-            <select
-              value={sesInstructor}
-              onChange={(e) => setSesInstructor(e.target.value)}
-              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-            >
-              {db.coaches.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-              {db.coaches.length === 0 && (
-                <option value="Coach Por Asignar">Coach Por Asignar</option>
+
+          {/* MODO LOTE CON CHECKS (SUPER ADMINISTRATIVO) */}
+          {sessionCreateMode === "batch" ? (
+            <form onSubmit={handleSubmitBatch} className="space-y-6">
+              {/* 1. SELECCIÓN DE SUCURSALES CON CHECKS */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    1. Elige las Sucursales ({batchBranches.length} seleccionadas)
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBatchBranches(
+                          db.branches
+                            .filter((b) => b.brand === "Devotion")
+                            .map((b) => b.id)
+                        )
+                      }
+                      className="rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-300 font-bold px-2 py-1 hover:bg-orange-100 transition"
+                    >
+                      🔥 Solo Devotion (Hot 38°C)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBatchBranches(
+                          db.branches
+                            .filter((b) => b.brand === "Stiliza")
+                            .map((b) => b.id)
+                        )
+                      }
+                      className="rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 font-bold px-2 py-1 hover:bg-stone-200 transition"
+                    >
+                      ✨ Solo Stiliza (Reformer)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchBranches(db.branches.map((b) => b.id))}
+                      className="rounded-lg bg-stone-900 text-amber-200 font-bold px-2 py-1 hover:bg-stone-800 transition"
+                    >
+                      Todas (6)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchBranches([])}
+                      className="rounded-lg bg-stone-100 dark:bg-stone-900 text-stone-500 font-bold px-2 py-1 hover:text-stone-800 transition"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {db.branches.map((br) => {
+                    const isChecked = batchBranches.includes(br.id);
+                    return (
+                      <label
+                        key={br.id}
+                        className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition ${
+                          isChecked
+                            ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/50 text-stone-900 dark:text-stone-100 shadow-sm"
+                            : "bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleBranch(br.id)}
+                          className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-stone-300"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${
+                                br.brand === "Devotion"
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-stone-900 text-amber-300 dark:bg-stone-800"
+                              }`}
+                            >
+                              {br.brand}
+                            </span>
+                            <span className="text-xs font-bold truncate">
+                              {br.name}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-stone-500 dark:text-stone-400 block mt-0.5">
+                            {br.brand === "Devotion"
+                              ? "Hot Studio Infrarrojo 38°C"
+                              : "Salón Reformer"}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. SELECCIÓN DE DÍAS CON CHECKS Y PRESETS */}
+              <div className="space-y-3 pt-3 border-t border-stone-100 dark:border-stone-800">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    2. Elige los Días ({batchDays.length} seleccionados)
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setBatchDays(["Martes", "Jueves"])}
+                      className="rounded-lg bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-300 font-bold px-2 py-1 hover:bg-amber-200 transition"
+                    >
+                      Martes y Jueves
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBatchDays(["Lunes", "Miércoles", "Viernes"])
+                      }
+                      className="rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 font-bold px-2 py-1 hover:bg-stone-200 transition"
+                    >
+                      Lun, Mié y Vie
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBatchDays([
+                          "Lunes",
+                          "Martes",
+                          "Miércoles",
+                          "Jueves",
+                          "Viernes",
+                        ])
+                      }
+                      className="rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 font-bold px-2 py-1 hover:bg-stone-200 transition"
+                    >
+                      Lun a Vie
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchDays(["Sábado", "Domingo"])}
+                      className="rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 font-bold px-2 py-1 hover:bg-stone-200 transition"
+                    >
+                      Sáb y Dom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBatchDays([
+                          "Lunes",
+                          "Martes",
+                          "Miércoles",
+                          "Jueves",
+                          "Viernes",
+                          "Sábado",
+                          "Domingo",
+                        ])
+                      }
+                      className="rounded-lg bg-stone-900 text-amber-200 font-bold px-2 py-1 hover:bg-stone-800 transition"
+                    >
+                      Toda la semana
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      "Lunes",
+                      "Martes",
+                      "Miércoles",
+                      "Jueves",
+                      "Viernes",
+                      "Sábado",
+                      "Domingo",
+                    ] as DayOfWeek[]
+                  ).map((day) => {
+                    const isChecked = batchDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => handleToggleDay(day)}
+                        className={`rounded-xl px-3.5 py-2 text-xs font-bold border transition flex items-center gap-2 ${
+                          isChecked
+                            ? "bg-stone-900 dark:bg-stone-800 text-amber-300 border-amber-400 shadow-sm"
+                            : "bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800"
+                        }`}
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="h-4 w-4 text-amber-400" />
+                        ) : (
+                          <Square className="h-4 w-4 text-stone-400" />
+                        )}
+                        <span>{day}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. NOMBRE DE LA CLASE & DISCIPLINAS */}
+              <div className="space-y-3 pt-3 border-t border-stone-100 dark:border-stone-800">
+                <label className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 flex items-center gap-2">
+                  <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  3. Clase &amp; Enfoque
+                </label>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "UPPER BODY",
+                    "LOWER BODY",
+                    "FULL BODY",
+                    "STRETCHING",
+                    "REFORMER FLOW",
+                    "ATHLETIC CORE",
+                    "CANDLELIGHT 38°C",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setBatchTitle(preset)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition border ${
+                        batchTitle === preset
+                          ? "bg-amber-400 text-stone-950 border-amber-500 shadow-sm"
+                          : "bg-stone-100 dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:bg-stone-200 dark:hover:bg-stone-800"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    required
+                    value={batchTitle}
+                    onChange={(e) => setBatchTitle(e.target.value)}
+                    placeholder="Escribe el nombre de la clase (ej. UPPER BODY)"
+                    className="sm:col-span-2 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3.5 py-2.5 text-xs font-bold text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:bg-white dark:focus:bg-stone-950 focus:border-amber-500 outline-none"
+                  />
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={batchIsSpecial}
+                      onChange={(e) => setBatchIsSpecial(e.target.checked)}
+                      className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                      ¿Clase Especial / Evento?
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 4. SELECCIÓN DE HORARIOS CON CHECKS + HORAS EDITABLES + COACH INTERCALADO */}
+              <div className="space-y-4 pt-3 border-t border-stone-100 dark:border-stone-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      4. Horarios y Asignación de Coach por Hora ({batchHours.length} turnos)
+                    </label>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                      Marca horarios con check o añade horas personalizadas (ej. 06:30). Puedes cambiar el coach por cada hora para intercalar turnos.
+                    </p>
+                  </div>
+
+                  {/* Selector Global de Coach para aplicar a todas las horas de golpe */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 whitespace-nowrap">
+                      Asignar a todas:
+                    </span>
+                    <select
+                      value={batchGlobalCoach}
+                      onChange={(e) => handleApplyGlobalCoach(e.target.value)}
+                      className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-1.5 text-xs font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 outline-none"
+                    >
+                      <option value="">(Personalizar por hora)</option>
+                      {db.coaches.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                      <option value="Coach Por Asignar">Coach Por Asignar</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Preset Chips con Checks Rápidos */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                    Horarios Habituales (Haz clic para activar o desactivar):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_HOURS.map((hour) => {
+                      const isActive = batchHours.some((h) => h.time === hour);
+                      return (
+                        <button
+                          key={hour}
+                          type="button"
+                          onClick={() => handleToggleHourPreset(hour)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition flex items-center gap-1.5 border ${
+                            isActive
+                              ? "bg-amber-400 text-stone-950 border-amber-500 shadow-sm"
+                              : "bg-stone-100 dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:bg-stone-200"
+                          }`}
+                        >
+                          {isActive ? (
+                            <CheckSquare className="h-3.5 w-3.5 text-stone-950" />
+                          ) : (
+                            <Square className="h-3.5 w-3.5 text-stone-400" />
+                          )}
+                          <span>{hour} hrs</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Lista Interactiva de Horarios Activos (EDITABLES y CON COACH INDIVIDUAL) */}
+                <div className="rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-2">
+                    <span className="text-xs font-extrabold text-stone-800 dark:text-stone-200">
+                      Horarios Programados para este Lote ({batchHours.length}):
+                    </span>
+                    <span className="text-[11px] text-stone-500 dark:text-stone-400">
+                      Puedes editar la hora directamente o intercalar coaches
+                    </span>
+                  </div>
+
+                  {batchHours.length === 0 ? (
+                    <div className="py-4 text-center text-xs text-stone-400">
+                      No has seleccionado ningún horario aún. Marca uno arriba o añade una hora abajo.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {batchHours.map((h, idx) => (
+                        <div
+                          key={h.id}
+                          className="rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 p-2.5 shadow-sm flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-[10px] font-mono text-stone-400 font-bold">
+                              #{idx + 1}
+                            </span>
+                            {/* Input editable de hora (ej: cambiar 06:00 a 06:30 directamente) */}
+                            <input
+                              type="text"
+                              value={h.time}
+                              onChange={(e) =>
+                                handleUpdateHourTime(h.id, e.target.value)
+                              }
+                              placeholder="06:00"
+                              className="w-16 rounded-lg bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 px-1.5 py-1 text-xs font-mono font-extrabold text-stone-900 dark:text-stone-100 text-center outline-none focus:border-amber-500"
+                            />
+                            {/* Selector de coach para esa hora específica */}
+                            <select
+                              value={h.instructor}
+                              onChange={(e) =>
+                                handleUpdateHourCoach(h.id, e.target.value)
+                              }
+                              className="flex-1 min-w-0 rounded-lg bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 px-2 py-1 text-[11px] font-semibold text-stone-800 dark:text-stone-200 outline-none truncate"
+                            >
+                              {db.coaches.map((c) => (
+                                <option key={c.id} value={c.name}>
+                                  {c.name}
+                                </option>
+                              ))}
+                              {db.coaches.length === 0 && (
+                                <option value="Coach Por Asignar">
+                                  Coach Por Asignar
+                                </option>
+                              )}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveHour(h.id)}
+                            title="Quitar este horario"
+                            className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input para agregar hora personalizada arbitraria */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-stone-200/80 dark:border-stone-800">
+                    <span className="text-xs font-bold text-stone-600 dark:text-stone-400">
+                      ¿Necesitas otra hora? (ej. 06:30):
+                    </span>
+                    <input
+                      type="text"
+                      value={customNewHour}
+                      onChange={(e) => setCustomNewHour(e.target.value)}
+                      placeholder="06:30"
+                      className="w-20 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-2.5 py-1.5 text-xs font-mono font-bold text-center text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomHour}
+                      className="inline-flex items-center gap-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 text-xs font-bold px-3 py-1.5 transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Añadir Horario
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FEEDBACK DEL LOTE */}
+              {batchResultMsg && (
+                <div
+                  className={`p-4 rounded-2xl text-xs font-semibold border ${
+                    batchResultMsg.success
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                      : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300"
+                  }`}
+                >
+                  {batchResultMsg.text}
+                </div>
               )}
-            </select>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-stone-300">
-              <input
-                type="checkbox"
-                checked={sesIsSpecial}
-                onChange={(e) => setSesIsSpecial(e.target.checked)}
-              />
-              ¿Es Clase Especial?
-            </label>
-            {sesIsSpecial && (
-              <input
-                type="text"
-                value={sesBadge}
-                onChange={(e) => setSesBadge(e.target.value)}
-                placeholder="Etiqueta especial (ej. 🎧 DJ Live Set / 🕯️ Soundbath)"
-                className="w-full sm:w-80 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
-              />
-            )}
-          </div>
-          <div>
-            <button
-              type="submit"
-              className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-5 py-2.5 transition shadow-sm"
+
+              {/* 5. LIVE SUMMARY & ACTION BUTTON */}
+              <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-amber-950 dark:text-amber-200">
+                    <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span>Resumen en Vivo del Lote:</span>
+                  </div>
+                  <p className="text-xs text-amber-900/90 dark:text-amber-300/90 mt-1 font-medium">
+                    Se crearán{" "}
+                    <strong className="font-extrabold text-stone-950 dark:text-white">
+                      {batchBranches.length * batchDays.length * batchHours.length} clases
+                    </strong>{" "}
+                    en total: ({batchBranches.length} sucursales × {batchDays.length} días × {batchHours.length} horarios).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDrawer(null)}
+                    disabled={isSubmittingBatch}
+                    className="rounded-xl bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold text-xs px-4 py-2.5 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      isSubmittingBatch ||
+                      batchBranches.length === 0 ||
+                      batchDays.length === 0 ||
+                      batchHours.length === 0
+                    }
+                    className={`rounded-xl font-bold text-xs px-5 py-2.5 transition shadow-lg flex items-center gap-2 ${
+                      isSubmittingBatch ||
+                      batchBranches.length === 0 ||
+                      batchDays.length === 0 ||
+                      batchHours.length === 0
+                        ? "bg-stone-400 text-stone-200 cursor-not-allowed"
+                        : "bg-stone-900 hover:bg-stone-800 text-amber-300 shadow-stone-900/30"
+                    }`}
+                  >
+                    {isSubmittingBatch ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
+                        <span>Guardando en Supabase...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 text-amber-300" />
+                        <span>
+                          Guardar y Publicar {batchBranches.length * batchDays.length * batchHours.length} Clases (1 Clic)
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            /* MODO INDIVIDUAL CLÁSICO */
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!sesTitle.trim()) return;
+                await onCreateSession({
+                  title: sesTitle,
+                  roomId: sesRoomId,
+                  instructor: sesInstructor,
+                  date: sesDate,
+                  dayOfWeek: sesDayOfWeek,
+                  startTime: sesTime,
+                  isSpecialClass: sesIsSpecial,
+                  specialBadge: sesIsSpecial ? sesBadge : undefined,
+                });
+                setActiveDrawer(null);
+              }}
+              className="space-y-4"
             >
-              Publicar en Horarios y Kioscos
-            </button>
-          </div>
-        </form>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <input
+                  type="text"
+                  required
+                  value={sesTitle}
+                  onChange={(e) => setSesTitle(e.target.value)}
+                  placeholder="Nombre de la clase"
+                  className="sm:col-span-2 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] outline-none"
+                />
+                <select
+                  value={sesRoomId}
+                  onChange={(e) => setSesRoomId(e.target.value)}
+                  className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 outline-none"
+                >
+                  {db.rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      [{r.brand}] {r.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={sesDayOfWeek}
+                  onChange={(e) => setSesDayOfWeek(e.target.value as DayOfWeek)}
+                  className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 outline-none"
+                >
+                  {(
+                    [
+                      "Lunes",
+                      "Martes",
+                      "Miércoles",
+                      "Jueves",
+                      "Viernes",
+                      "Sábado",
+                      "Domingo",
+                    ] as DayOfWeek[]
+                  ).map((day) => (
+                    <option key={day} value={day}>
+                      Día: {day}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={sesTime}
+                  onChange={(e) => setSesTime(e.target.value)}
+                  placeholder="Hora (ej. 06:15)"
+                  className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold text-stone-900 dark:text-stone-100 outline-none"
+                />
+                <select
+                  value={sesInstructor}
+                  onChange={(e) => setSesInstructor(e.target.value)}
+                  className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 outline-none"
+                >
+                  {db.coaches.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                  {db.coaches.length === 0 && (
+                    <option value="Coach Por Asignar">Coach Por Asignar</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawer(null)}
+                  className="rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs px-4 py-2 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-200 font-bold text-xs px-5 py-2 transition shadow-sm"
+                >
+                  Guardar Clase Individual
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {/* DRAWER: Nuevo Evento / Promo para Kioscos */}
@@ -1460,14 +2192,147 @@ export function AdminCRMDashboard({
           </form>
         )}
 
+        {/* BARRA FLOTANTE DE ACCIONES EN LOTE PARA HORARIOS */}
+        {selectedSessionIds.length > 0 && (
+          <div className="rounded-2xl bg-stone-900 text-white p-3.5 shadow-lg border border-amber-400 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-amber-400 text-stone-950 px-2.5 py-1 text-xs font-black">
+                {selectedSessionIds.length}
+              </span>
+              <span className="text-xs font-bold text-amber-200">
+                Clases seleccionadas
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Reasignar Coach en Lote */}
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={tableBatchCoach}
+                  onChange={(e) => setTableBatchCoach(e.target.value)}
+                  className="rounded-xl bg-stone-800 border border-stone-700 text-xs font-bold text-stone-100 px-3 py-1.5 outline-none"
+                >
+                  <option value="">Seleccionar Coach...</option>
+                  {db.coaches.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                  <option value="Coach Por Asignar">Coach Por Asignar</option>
+                </select>
+                <button
+                  type="button"
+                  disabled={!tableBatchCoach || isProcessingTableBatch}
+                  onClick={async () => {
+                    if (!tableBatchCoach) return;
+                    setIsProcessingTableBatch(true);
+                    if (onBatchUpdateCoach) {
+                      await onBatchUpdateCoach(selectedSessionIds, tableBatchCoach);
+                    } else {
+                      for (const sid of selectedSessionIds) {
+                        const s = db.sessions.find((x) => x.id === sid);
+                        if (s) {
+                          await onUpdateSession({
+                            sessionId: s.id,
+                            title: s.title,
+                            instructor: tableBatchCoach,
+                            startTime: s.startTime,
+                            date: s.date,
+                            dayOfWeek: s.dayOfWeek,
+                            roomId: s.roomId,
+                          });
+                        }
+                      }
+                    }
+                    setIsProcessingTableBatch(false);
+                    setSelectedSessionIds([]);
+                    setTableBatchCoach("");
+                  }}
+                  className="rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs px-3 py-1.5 transition disabled:opacity-50"
+                >
+                  Asignar Coach a {selectedSessionIds.length} Clases
+                </button>
+              </div>
+
+              {/* Eliminar en Lote */}
+              <button
+                type="button"
+                disabled={isProcessingTableBatch}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      `¿Eliminar las ${selectedSessionIds.length} clases seleccionadas?`
+                    )
+                  )
+                    return;
+                  setIsProcessingTableBatch(true);
+                  if (onBatchDeleteSessions) {
+                    await onBatchDeleteSessions(selectedSessionIds);
+                  } else {
+                    for (const sid of selectedSessionIds) {
+                      await onDeleteSession(sid);
+                    }
+                  }
+                  setIsProcessingTableBatch(false);
+                  setSelectedSessionIds([]);
+                }}
+                className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-1.5 transition flex items-center gap-1 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar Seleccionadas
+              </button>
+
+              {/* Deseleccionar */}
+              <button
+                type="button"
+                onClick={() => setSelectedSessionIds([])}
+                className="rounded-xl bg-stone-800 text-stone-400 hover:text-white text-xs px-3 py-1.5 transition"
+              >
+                Deseleccionar
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-stone-200 dark:border-stone-800 text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                <th className="py-2.5 px-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredSessions.length > 0 &&
+                      filteredSessions.every((s) =>
+                        selectedSessionIds.includes(s.id)
+                      )
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const allIds = Array.from(
+                          new Set([
+                            ...selectedSessionIds,
+                            ...filteredSessions.map((s) => s.id),
+                          ])
+                        );
+                        setSelectedSessionIds(allIds);
+                      } else {
+                        const filteredIds = new Set(
+                          filteredSessions.map((s) => s.id)
+                        );
+                        setSelectedSessionIds(
+                          selectedSessionIds.filter((id) => !filteredIds.has(id))
+                        );
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-stone-300"
+                    title="Seleccionar todas las clases de este filtro"
+                  />
+                </th>
                 <th className="py-2.5 px-3">Sucursal / Marca</th>
                 <th className="py-2.5 px-3">Día &amp; Horario</th>
                 <th className="py-2.5 px-3">Clase &amp; Salón</th>
-                <th className="py-2.5 px-3">Coach</th>
+                <th className="py-2.5 px-3">Coach (Edición Rápida)</th>
                 <th className="py-2.5 px-3">Reservaron / Disponibilidad</th>
                 <th className="py-2.5 px-3 text-right">Acciones</th>
               </tr>
@@ -1484,6 +2349,7 @@ export function AdminCRMDashboard({
                 ).length;
                 const available = Math.max(0, capacity - sesBookings.length);
                 const isSelected = activeSession?.id === ses.id;
+                const isRowChecked = selectedSessionIds.includes(ses.id);
                 const hourNum = parseInt(ses.startTime.split(":")[0] || "18", 10);
                 const isMorning = (ses.timeBlock || (hourNum < 13 ? "manana" : "tarde")) === "manana";
 
@@ -1491,9 +2357,33 @@ export function AdminCRMDashboard({
                   <tr
                     key={ses.id}
                     onClick={() => setSelectedSessionId(ses.id)}
-                    className={`cursor-pointer transition ${isSelected ? "bg-amber-50/90 dark:bg-amber-950/30" : "hover:bg-stone-50 dark:hover:bg-stone-800/40"
-                      }`}
+                    className={`cursor-pointer transition ${
+                      isRowChecked
+                        ? "bg-amber-100/70 dark:bg-amber-950/40"
+                        : isSelected
+                        ? "bg-amber-50/90 dark:bg-amber-950/20"
+                        : "hover:bg-stone-50 dark:hover:bg-stone-800/40"
+                    }`}
                   >
+                    <td
+                      className="py-3 px-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isRowChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSessionIds([...selectedSessionIds, ses.id]);
+                          } else {
+                            setSelectedSessionIds(
+                              selectedSessionIds.filter((id) => id !== ses.id)
+                            );
+                          }
+                        }}
+                        className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-stone-300"
+                      />
+                    </td>
                     <td className="py-3 px-3">
                       <span
                         className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold ${ses.brand === "Devotion"
@@ -1538,8 +2428,41 @@ export function AdminCRMDashboard({
                         {ses.roomName}
                       </p>
                     </td>
-                    <td className="py-3 px-3 font-semibold text-stone-800 dark:text-stone-200">
-                      {ses.instructor}
+                    <td
+                      className="py-3 px-3 font-semibold text-stone-800 dark:text-stone-200"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Fast Inline Coach Selector */}
+                      <select
+                        value={ses.instructor}
+                        onChange={async (e) => {
+                          const newCoach = e.target.value;
+                          await onUpdateSession({
+                            sessionId: ses.id,
+                            title: ses.title,
+                            instructor: newCoach,
+                            startTime: ses.startTime,
+                            date: ses.date,
+                            dayOfWeek: ses.dayOfWeek,
+                            roomId: ses.roomId,
+                            isSpecialClass: ses.isSpecialClass,
+                            specialBadge: ses.specialBadge,
+                          });
+                        }}
+                        className="rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700 px-2 py-1 text-xs font-bold text-stone-900 dark:text-stone-100 outline-none cursor-pointer"
+                        title="Cambiar coach directamente para este horario"
+                      >
+                        {db.coaches.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                        {db.coaches.length === 0 && (
+                          <option value="Coach Por Asignar">
+                            Coach Por Asignar
+                          </option>
+                        )}
+                      </select>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">

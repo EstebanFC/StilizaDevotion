@@ -510,6 +510,151 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, session: newSession, state });
     }
 
+    if (action === "create_sessions_batch") {
+      const { batch } = body as {
+        batch: Array<{
+          title: string;
+          branchId: string;
+          dayOfWeek: DayOfWeek;
+          startTime: string;
+          instructor?: string;
+          isSpecialClass?: boolean;
+          specialBadge?: string;
+        }>;
+      };
+
+      if (!Array.isArray(batch) || batch.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "El lote de clases está vacío." },
+          { status: 400 }
+        );
+      }
+
+      const state = readDB();
+      const createdSessions: ClassSession[] = [];
+      const timestamp = Date.now();
+
+      batch.forEach((item, index) => {
+        const room =
+          state.rooms.find((r) => r.branchId === item.branchId) ||
+          state.rooms[0];
+        const branch =
+          state.branches.find((b) => b.id === item.branchId) ||
+          state.branches[0];
+
+        const timeStr = String(item.startTime || "07:15").trim();
+        const hourNum = parseInt(timeStr.split(":")[0] || "7", 10);
+        const timeBlock: "manana" | "tarde" = hourNum < 13 ? "manana" : "tarde";
+
+        const instructor = item.instructor?.trim() || "Coach Por Asignar";
+        const parts = instructor.split(" ");
+        const initials = parts
+          .map((p) => p[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+
+        const timeSlug = timeStr.replace(":", "");
+        const daySlug = (item.dayOfWeek || "martes")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+        const branchCode = branch?.name.includes("San Isidro")
+          ? "stsi"
+          : branch?.name.includes("Stiliza Juriquilla")
+          ? "stju"
+          : branch?.name.includes("Stiliza Campanario")
+          ? "stca"
+          : branch?.name.includes("Zibatá")
+          ? "dezi"
+          : branch?.name.includes("Devotion Juriquilla")
+          ? "deju"
+          : "deca";
+
+        const generatedId = `ses-${branchCode}-${daySlug}-${timeSlug}-${timestamp.toString().slice(-4)}${index}`;
+
+        // Si ya existe una clase exactamente en la misma sucursal, día y hora, actualizarla en vez de duplicar
+        const existingIdx = state.sessions.findIndex(
+          (s) =>
+            s.branchId === item.branchId &&
+            s.dayOfWeek === item.dayOfWeek &&
+            s.startTime === timeStr
+        );
+
+        const newSession: ClassSession = {
+          id: existingIdx >= 0 ? state.sessions[existingIdx].id : generatedId,
+          title:
+            item.title ||
+            `${
+              room.brand === "Devotion" ? "HOT PILATES 38°C" : "REFORMER"
+            } · ${branch?.name}`,
+          discipline: room.discipline,
+          branchId: item.branchId,
+          branchName: branch?.name || room.branchName,
+          brand: room.brand,
+          roomId: room.id,
+          roomName: room.name,
+          instructor,
+          instructorAvatar: initials || "CO",
+          dayOfWeek: item.dayOfWeek,
+          timeBlock,
+          startTime: timeStr,
+          durationMinutes: 50,
+          level: "Todos los niveles",
+          intensity: room.discipline === "hot_pilates" ? "Intensa 🔥" : "Alta",
+          isSpecialClass: Boolean(item.isSpecialClass),
+          specialBadge: item.specialBadge || undefined,
+        };
+
+        if (existingIdx >= 0) {
+          state.sessions[existingIdx] = newSession;
+        } else {
+          state.sessions.push(newSession);
+        }
+        createdSessions.push(newSession);
+      });
+
+      await saveStateToSupabase(state);
+      return NextResponse.json({
+        success: true,
+        count: createdSessions.length,
+        state,
+      });
+    }
+
+    if (action === "batch_update_sessions_coach") {
+      const { sessionIds, instructor } = body as {
+        sessionIds: string[];
+        instructor: string;
+      };
+      const state = readDB();
+      const parts = String(instructor || "Coach").split(" ");
+      const initials = parts
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
+      state.sessions.forEach((s) => {
+        if (sessionIds.includes(s.id)) {
+          s.instructor = instructor;
+          s.instructorAvatar = initials;
+        }
+      });
+
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "batch_delete_sessions") {
+      const { sessionIds } = body as { sessionIds: string[] };
+      const state = readDB();
+      state.sessions = state.sessions.filter((s) => !sessionIds.includes(s.id));
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, state });
+    }
+
     if (action === "update_session") {
       const {
         sessionId,
