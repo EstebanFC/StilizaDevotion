@@ -6,6 +6,7 @@ import { ClientBookingPortal } from "@/components/ClientBookingPortal";
 import { WhatsAppAICenter } from "@/components/WhatsAppAICenter";
 import { TabletKioskView } from "@/components/TabletKioskView";
 import { AdminCRMDashboard } from "@/components/AdminCRMDashboard";
+import { AdminSettingsIntegrations } from "@/components/AdminSettingsIntegrations";
 import { LoginGateway, SessionUser } from "@/components/LoginGateway";
 import { ThemeToggleButton } from "@/context/ThemeContext";
 import {
@@ -16,6 +17,7 @@ import {
   LogOut,
   QrCode,
   ShieldCheck,
+  Sliders,
   Sparkles,
   Tablet,
 } from "lucide-react";
@@ -24,7 +26,8 @@ type AdminModule =
   | "admin_crm"
   | "whatsapp_ai"
   | "tablet_kiosk"
-  | "client_portal";
+  | "client_portal"
+  | "settings";
 
 /**
  * Ruta Exclusiva de Administración (/admin) -> https://stilizadevotion.vercel.app/admin
@@ -239,24 +242,28 @@ export default function AdminOnlyPortalPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-[#7B6E86] text-[#D2C483] flex items-center justify-center shadow-sm border border-[#7B6E86]/40">
+              <div className="h-11 w-11 rounded-2xl bg-[#7B6E86] text-[#D2C483] flex items-center justify-center shadow-sm border border-[#7B6E86]/40 shrink-0">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-extrabold tracking-tight">
-                    STILIZA & DEVOTION · ADMIN OS
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
+                    STILIZA &amp; DEVOTION
                   </h1>
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#7B6E86]/15 border border-[#7B6E86]/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7B6E86] dark:text-[#D2C483]">
-                    <Sparkles className="h-2.5 w-2.5 text-[#D2C483]" /> 6 Sucursales &{" "}
-                    <Flame className="h-2.5 w-2.5 text-[#7B6E86]" /> Channel Manager
+                  <span className="text-xs font-semibold text-[#7B6E86] dark:text-[#D2C483]">
+                    Admin OS
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-stone-300 dark:text-stone-700 hidden sm:inline">·</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-600 dark:text-stone-400">
+                    6 Sucursales
+                  </span>
+                  <span className="text-stone-300 dark:text-stone-700 hidden sm:inline">·</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     En Vivo
                   </span>
                 </div>
-                <p className="text-xs text-stone-500 dark:text-[#A89E96]">{adminUser.label}</p>
+                <p className="text-xs text-stone-500 dark:text-[#A89E96] mt-0.5">{adminUser.label}</p>
               </div>
             </div>
           </div>
@@ -266,33 +273,33 @@ export default function AdminOnlyPortalPage() {
               <button
                 type="button"
                 onClick={() => handleChangeAdminModule("admin_crm")}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
                   activeAdminModule === "admin_crm"
                     ? "bg-[#7B6E86] text-white shadow-sm"
                     : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
                 <LayoutDashboard className="h-4 w-4 text-[#D2C483]" />
-                1. Control Sucursales & Horarios
+                1. Control Horarios &amp; Alumnos
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChangeAdminModule("whatsapp_ai")}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
                   activeAdminModule === "whatsapp_ai"
                     ? "bg-[#7B6E86] text-white shadow-sm"
                     : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
                 <Bot className="h-4 w-4 text-[#D2C483]" />
-                2. Bot IA WhatsApp + QR
+                2. Bot WhatsApp + QR
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChangeAdminModule("tablet_kiosk")}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
                   activeAdminModule === "tablet_kiosk"
                     ? "bg-[#7B6E86] text-white shadow-sm"
                     : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
@@ -305,14 +312,27 @@ export default function AdminOnlyPortalPage() {
               <button
                 type="button"
                 onClick={() => handleChangeAdminModule("client_portal")}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
                   activeAdminModule === "client_portal"
                     ? "bg-[#7B6E86] text-white shadow-sm"
                     : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
                 <CalendarCheck className="h-4 w-4 text-[#D2C483]" />
-                4. Portal Web Alumnos
+                4. Portal Alumnos
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChangeAdminModule("settings")}
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                  activeAdminModule === "settings"
+                    ? "bg-[#7B6E86] text-white shadow-sm"
+                    : "text-stone-700 dark:text-stone-300 hover:bg-white/60 dark:hover:bg-white/10"
+                }`}
+              >
+                <Sliders className="h-4 w-4 text-[#D2C483]" />
+                5. Configuración &amp; Integraciones
               </button>
             </nav>
 
@@ -534,6 +554,73 @@ export default function AdminOnlyPortalPage() {
             onBuyPackage={handleBuyPackage}
             onOpenWhatsAppChat={() => handleChangeAdminModule("whatsapp_ai")}
             onSimulateScanInKiosk={handleJumpToKioskWithToken}
+          />
+        )}
+
+        {activeAdminModule === "settings" && (
+          <AdminSettingsIntegrations
+            db={db}
+            onUpdateBranchPin={async (branchId, pin) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_branch_pin",
+                  branchId,
+                  pin,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return { success: Boolean(data.success), error: data.error };
+            }}
+            onSyncExternalBooking={async (payload) => {
+              const res = await fetch("/api/integrations/aggregator", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                error: data.error,
+                spotAssigned: data?.booking?.spotId,
+                remainingSlots:
+                  data?.channelSyncReport?.remainingSlotsPublishedToAllApps,
+              };
+            }}
+            onSaveMetaCredentials={async (payload) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "save_meta_credentials",
+                  phoneNumberId: payload.phoneNumberId,
+                  accessToken: payload.accessToken,
+                  testRecipientPhone: payload.testPhone,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                error: data.error || (data.sendRes && data.sendRes.error),
+                messageId: data?.sendRes?.messageId,
+              };
+            }}
+            onUpdateAiSettings={async (settings) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_ai_settings",
+                  settings,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+            }}
           />
         )}
       </main>

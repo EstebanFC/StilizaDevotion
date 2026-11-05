@@ -30,3 +30,22 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
+
+/* Ergonomía y contraste universal para formularios e inputs (WCAG AA) */
+input, select, textarea {
+  color: #1c1917;
+  background-color: #ffffff;
+}
+
+.dark input, .dark select, .dark textarea {
+  color: #f5f5f4;
+  background-color: #1c1924;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #78716c;
+}
+
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #a8a29e;
+}

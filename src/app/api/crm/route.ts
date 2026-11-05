@@ -237,6 +237,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === "update_ai_settings") {
+      const { settings } = body;
+      const state = readDB();
+      if (settings && typeof settings === "object") {
+        state.aiSettings = {
+          ...state.aiSettings,
+          ...settings,
+        };
+        await saveStateToSupabase(state);
+      }
+      return NextResponse.json({ success: true, state });
+    }
+
     if (action === "add_credits") {
       const { clientId, packageId } = body;
       const state = readDB();

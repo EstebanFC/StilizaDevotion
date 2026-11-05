@@ -10,7 +10,6 @@ import {
   StudioBrand,
 } from "@/types/crm";
 import { StudioSpotMap } from "@/components/StudioSpotMap";
-import { ChannelManagerPanel } from "@/components/ChannelManagerPanel";
 import {
   AlertTriangle,
   Award,
@@ -582,16 +581,7 @@ export function AdminCRMDashboard({
       </div>
 
       {/* =====================================================================
-          2. CHANNEL MANAGER: WELLHUB, TOTALPASS, FITPASS & NESSTY
-         ===================================================================== */}
-      <ChannelManagerPanel
-        db={db}
-        selectedSessionId={activeSession?.id || ""}
-        onSyncExternalBooking={onSyncExternalBooking}
-      />
-
-      {/* =====================================================================
-          3. "COSAS CHUSCAS" / RADAR DE INTELIGENCIA PARA ADMINISTRADORES
+          2. "COSAS CHUSCAS" / RADAR DE INTELIGENCIA PARA ADMINISTRADORES
          ===================================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: La Máquina / Tapete Más Peleado */}
@@ -612,48 +602,53 @@ export function AdminCRMDashboard({
         </div>
 
         {/* Card 2: Alumna VIP vs El Fantasma de las Cancelaciones */}
-        <div className="rounded-3xl bg-white border border-stone-200/90 p-5 shadow-sm">
+        <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-stone-400">
               👻 Radar: Reina VIP vs Fantasma
             </span>
-            <Ghost className="h-5 w-5 text-stone-600" />
+            <Ghost className="h-5 w-5 text-stone-600 dark:text-stone-400" />
           </div>
-          <p className="text-xs text-stone-800 mt-2">
+          <p className="text-xs text-stone-800 dark:text-stone-200 mt-2">
             👑 <strong>Obsesión Total:</strong>{" "}
             {vipClient ? `${vipClient.name} (${vipClient.totalAttended} clases sin fallar)` : "Sin alumnos registrados"}
           </p>
-          <p className="text-xs text-rose-700 mt-1.5">
+          <p className="text-xs text-rose-700 dark:text-rose-400 mt-1.5">
             👻 <strong>Alerta Fantasma:</strong>{" "}
             {ghostClient && ghostClient.noShowsCount ? `${ghostClient.name} acumula ${ghostClient.noShowsCount} no-shows` : "Sin incidencias registradas"}
           </p>
         </div>
 
         {/* Card 3: Alerta Hambre de Tokens (Upsell) */}
-        <div className="rounded-3xl bg-white border border-stone-200/90 p-5 shadow-sm">
+        <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
               🚨 Alerta: Se quedan sin Tokens
             </span>
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <p className="text-2xl font-extrabold text-stone-900 mt-1">
+          <p className="text-2xl font-extrabold text-stone-900 dark:text-stone-100 mt-1">
             {lowTokenClients.length} alumnas
           </p>
-          <p className="text-xs text-stone-500 mt-1">
-            {lowTokenClients.map((c) => c.name.split(" ")[0]).join(", ")}{" "}
-            tienen <strong>≤ 2 tokens</strong>. ¡Momento ideal para mandarles
-            promo por WhatsApp!
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            {lowTokenClients.length > 0 ? (
+              <>
+                {lowTokenClients.map((c) => c.name.split(" ")[0]).join(", ")}{" "}
+                tienen <strong>≤ 2 tokens</strong>. ¡Momento ideal para mandarles promo por WhatsApp!
+              </>
+            ) : (
+              "Todas las alumnas activas cuentan con saldo disponible."
+            )}
           </p>
         </div>
 
         {/* Card 4: Ranking Coaches Estrella */}
-        <div className="rounded-3xl bg-white border border-stone-200/90 p-5 shadow-sm">
+        <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
               🌟 Top Coaches (Lleno Total)
             </span>
-            <Award className="h-5 w-5 text-emerald-600" />
+            <Award className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="mt-2 space-y-1.5">
             {db.coaches.slice(0, 3).map((co, idx) => (
@@ -661,14 +656,19 @@ export function AdminCRMDashboard({
                 key={co.id}
                 className="flex items-center justify-between text-xs"
               >
-                <span className="font-bold text-stone-800 truncate">
+                <span className="font-bold text-stone-800 dark:text-stone-200 truncate">
                   {idx + 1}. {co.name}
                 </span>
-                <span className="rounded-full bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 text-[10px]">
+                <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-extrabold px-2 py-0.5 text-[10px]">
                   {co.occupancyRate}% lleno
                 </span>
               </div>
             ))}
+            {db.coaches.length === 0 && (
+              <p className="text-xs text-stone-400 dark:text-stone-500 py-1">
+                Aún no hay coaches registrados.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -827,11 +827,20 @@ export function AdminCRMDashboard({
             });
             setActiveDrawer(null);
           }}
-          className="rounded-3xl bg-white border border-stone-300 p-6 shadow-md space-y-4"
+          className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-300 dark:border-stone-700 p-6 shadow-md space-y-4"
         >
-          <h3 className="text-base font-bold text-stone-900">
-            Programar Nueva Clase en Horario de Sucursal (7am-10am o 6pm-8pm · Lunes a Domingo)
-          </h3>
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+              Programar Nueva Clase en Horario de Sucursal (7am-10am o 6pm-8pm · Lunes a Domingo)
+            </h3>
+            <button
+              type="button"
+              onClick={() => setActiveDrawer(null)}
+              className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              Cerrar ✕
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <input
               type="text"
@@ -839,12 +848,12 @@ export function AdminCRMDashboard({
               value={sesTitle}
               onChange={(e) => setSesTitle(e.target.value)}
               placeholder="Nombre de la clase"
-              className="sm:col-span-2 rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="sm:col-span-2 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <select
               value={sesRoomId}
               onChange={(e) => setSesRoomId(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               {db.rooms.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -855,7 +864,7 @@ export function AdminCRMDashboard({
             <select
               value={sesDayOfWeek}
               onChange={(e) => setSesDayOfWeek(e.target.value as DayOfWeek)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               {(
                 [
@@ -876,7 +885,7 @@ export function AdminCRMDashboard({
             <select
               value={sesTime}
               onChange={(e) => setSesTime(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               <optgroup label="Mañana Oficial (:15 AM)">
                 <option value="06:15">06:15 AM</option>
@@ -894,17 +903,20 @@ export function AdminCRMDashboard({
             <select
               value={sesInstructor}
               onChange={(e) => setSesInstructor(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               {db.coaches.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
                 </option>
               ))}
+              {db.coaches.length === 0 && (
+                <option value="Coach Por Asignar">Coach Por Asignar</option>
+              )}
             </select>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-700">
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-stone-300">
               <input
                 type="checkbox"
                 checked={sesIsSpecial}
@@ -918,14 +930,14 @@ export function AdminCRMDashboard({
                 value={sesBadge}
                 onChange={(e) => setSesBadge(e.target.value)}
                 placeholder="Etiqueta especial (ej. 🎧 DJ Live Set / 🕯️ Soundbath)"
-                className="w-full sm:w-80 rounded-xl border border-amber-400 px-3 py-2 text-xs"
+                className="w-full sm:w-80 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
               />
             )}
           </div>
           <div>
             <button
               type="submit"
-              className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2.5"
+              className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-5 py-2.5 transition shadow-sm"
             >
               Publicar en Horarios y Kioscos
             </button>
@@ -952,11 +964,20 @@ export function AdminCRMDashboard({
             setEvDesc("");
             setActiveDrawer(null);
           }}
-          className="rounded-3xl bg-white border border-amber-300 p-6 shadow-md space-y-4"
+          className="rounded-3xl bg-white dark:bg-[#1C1824] border border-amber-300 dark:border-amber-700/60 p-6 shadow-md space-y-4"
         >
-          <h3 className="text-base font-bold text-stone-900">
-            Publicar Nuevo Evento Especial o Promo en las Tablets de Kiosco
-          </h3>
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+              Publicar Nuevo Evento Especial o Promo en las Tablets de Kiosco
+            </h3>
+            <button
+              type="button"
+              onClick={() => setActiveDrawer(null)}
+              className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              Cerrar ✕
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
@@ -964,19 +985,19 @@ export function AdminCRMDashboard({
               value={evTitle}
               onChange={(e) => setEvTitle(e.target.value)}
               placeholder="Título (ej. Masterclass Reformer & Brunch)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <input
               type="text"
               value={evDate}
               onChange={(e) => setEvDate(e.target.value)}
               placeholder="Fecha/Hora (ej. Domingo 11:00 hrs)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <select
               value={evBranchId}
               onChange={(e) => setEvBranchId(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               <option value="all">Todas las sucursales Stiliza & Devotion</option>
               {db.branches.map((b) => (
@@ -990,26 +1011,26 @@ export function AdminCRMDashboard({
               value={evBadge}
               onChange={(e) => setEvBadge(e.target.value)}
               placeholder="Badge (ej. 🥂 Brunch Incluido)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <input
               type="text"
               value={evPrice}
               onChange={(e) => setEvPrice(e.target.value)}
               placeholder="Costo (ej. 2 Tokens o $450 MXN)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <input
               type="text"
               value={evDesc}
               onChange={(e) => setEvDesc(e.target.value)}
               placeholder="Descripción breve para las alumnas..."
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
           </div>
           <button
             type="submit"
-            className="rounded-xl bg-amber-400 text-stone-950 font-extrabold text-xs px-5 py-2.5"
+            className="rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-xs px-5 py-2.5 transition shadow-sm"
           >
             Enviar Evento a Todos los Kioscos
           </button>
@@ -1030,11 +1051,20 @@ export function AdminCRMDashboard({
             setCoachName("");
             setActiveDrawer(null);
           }}
-          className="rounded-3xl bg-white border border-stone-300 p-6 shadow-md space-y-4"
+          className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-300 dark:border-stone-700 p-6 shadow-md space-y-4"
         >
-          <h3 className="text-base font-bold text-stone-900">
-            Agregar Nueva Coach al Equipo Stiliza & Devotion
-          </h3>
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+              Agregar Nueva Coach al Equipo Stiliza &amp; Devotion
+            </h3>
+            <button
+              type="button"
+              onClick={() => setActiveDrawer(null)}
+              className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              Cerrar ✕
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
@@ -1042,12 +1072,12 @@ export function AdminCRMDashboard({
               value={coachName}
               onChange={(e) => setCoachName(e.target.value)}
               placeholder="Nombre (ej. Coach Mariana T.)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
             <select
               value={coachSpecialty}
               onChange={(e) => setCoachSpecialty(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               <option value="reformer">Especialidad: Pilates Reformer</option>
               <option value="hot_pilates">Especialidad: Hot Pilates 38°C</option>
@@ -1058,12 +1088,12 @@ export function AdminCRMDashboard({
               value={coachVibe}
               onChange={(e) => setCoachVibe(e.target.value)}
               placeholder="Sello personal (ej. 🔥 Queen del Burn)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+              className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             />
           </div>
           <button
             type="submit"
-            className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2.5"
+            className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-5 py-2.5 transition shadow-sm"
           >
             Guardar Coach
           </button>
@@ -1091,87 +1121,117 @@ export function AdminCRMDashboard({
             setNewMedicalNotes("");
             setActiveDrawer(null);
           }}
-          className="rounded-3xl bg-white border border-stone-300 p-6 shadow-md space-y-4"
+          className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-300 dark:border-stone-700 p-6 shadow-md space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-stone-900">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
               Dar de Alta Nuevo Alumno(a) · CRUD Clientes
             </h3>
             <button
               type="button"
               onClick={() => setActiveDrawer(null)}
-              className="text-xs text-stone-500"
+              className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
             >
               Cerrar ✕
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <input
-              type="text"
-              required
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nombre Completo (ej. Mariana Hernandéz)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-semibold"
-            />
-            <input
-              type="text"
-              required
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="WhatsApp (ej. +52 987 871 0684)"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono"
-            />
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="Correo electrónico"
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
-            />
-            <select
-              value={newHomeBranch}
-              onChange={(e) => setNewHomeBranch(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
-            >
-              {db.branches.map((b) => (
-                <option key={b.id} value={b.name}>
-                  Sucursal Base: {b.name} ({b.code})
-                </option>
-              ))}
-            </select>
-            <select
-              value={newPackageId}
-              onChange={(e) => setNewPackageId(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
-            >
-              <option value="none">Sin Paquete Activo (0 tokens)</option>
-              {db.packages.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.credits} tokens)
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                Nombre Completo *
+              </label>
               <input
                 type="text"
-                value={newPreferredSpot}
-                onChange={(e) => setNewPreferredSpot(e.target.value)}
-                placeholder="Lugar fav (1-12)"
-                className="w-28 rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono"
+                required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Nombre Completo (ej. Mariana Hernández)"
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-semibold text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                WhatsApp *
+              </label>
               <input
                 type="text"
-                value={newMedicalNotes}
-                onChange={(e) => setNewMedicalNotes(e.target.value)}
-                placeholder="Notas médicas u observaciones"
-                className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                required
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="WhatsApp (ej. +52 987 871 0684)"
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-semibold text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Correo electrónico"
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                Sucursal Base
+              </label>
+              <select
+                value={newHomeBranch}
+                onChange={(e) => setNewHomeBranch(e.target.value)}
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-semibold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
+              >
+                {db.branches.map((b) => (
+                  <option key={b.id} value={b.name}>
+                    Sucursal Base: {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                Paquete Inicial
+              </label>
+              <select
+                value={newPackageId}
+                onChange={(e) => setNewPackageId(e.target.value)}
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
+              >
+                <option value="none">Sin Paquete Activo (0 tokens)</option>
+                {db.packages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.credits} tokens)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                Lugar Favorito &amp; Notas
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newPreferredSpot}
+                  onChange={(e) => setNewPreferredSpot(e.target.value)}
+                  placeholder="Lugar fav (1-12)"
+                  className="w-28 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
+                />
+                <input
+                  type="text"
+                  value={newMedicalNotes}
+                  onChange={(e) => setNewMedicalNotes(e.target.value)}
+                  placeholder="Notas médicas u observaciones"
+                  className="flex-1 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
+                />
+              </div>
             </div>
           </div>
           <button
             type="submit"
-            className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2.5"
+            className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-5 py-2.5 transition shadow-sm"
           >
             Guardar Alumno(a) en CRM y Supabase
           </button>
@@ -1181,26 +1241,26 @@ export function AdminCRMDashboard({
       {/* =====================================================================
           4. CONTROL DE HORARIOS, RESERVAS POR CLASE Y EDICIÓN EN VIVO
          ===================================================================== */}
-      <div className="rounded-3xl bg-white border border-stone-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-extrabold text-stone-900">
+            <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
               Horarios por Sucursal (Lunes a Domingo · 7:00 am – 10:00 am y 6:00 pm – 8:00 pm)
             </h3>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
               Filtra por día de la semana o bloque horario (Mañana 7am-10am / Tarde 6pm-8pm). Haz clic en <strong>Modificar</strong> para ajustar clase, hora o coach.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Filtro de Turno: Mañana (7am-10am) vs Tarde (6pm-8pm) */}
-            <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200 text-xs">
+            <div className="inline-flex rounded-xl bg-stone-100 dark:bg-stone-900 p-1 border border-stone-200 dark:border-stone-800 text-xs">
               <button
                 type="button"
                 onClick={() => setBlockFilter("all")}
                 className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "all"
-                    ? "bg-stone-900 text-amber-200"
-                    : "text-stone-600 hover:text-stone-900"
+                    ? "bg-stone-900 text-amber-200 shadow-sm"
+                    : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
                   }`}
               >
                 Todos los turnos
@@ -1209,8 +1269,8 @@ export function AdminCRMDashboard({
                 type="button"
                 onClick={() => setBlockFilter("manana")}
                 className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "manana"
-                    ? "bg-amber-400 text-stone-950"
-                    : "text-stone-600 hover:text-stone-900"
+                    ? "bg-amber-400 text-stone-950 shadow-sm"
+                    : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
                   }`}
               >
                 ☀️ Mañana (7am - 10am)
@@ -1219,8 +1279,8 @@ export function AdminCRMDashboard({
                 type="button"
                 onClick={() => setBlockFilter("tarde")}
                 className={`rounded-lg px-2.5 py-1 font-bold transition ${blockFilter === "tarde"
-                    ? "bg-stone-900 text-amber-200"
-                    : "text-stone-600 hover:text-stone-900"
+                    ? "bg-stone-900 text-amber-200 shadow-sm"
+                    : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
                   }`}
               >
                 🌙 Tarde (6pm - 8pm)
@@ -1230,13 +1290,13 @@ export function AdminCRMDashboard({
         </div>
 
         {/* Pestañas de Días de la Semana (Lunes a Domingo) */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-stone-100 pb-3">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-stone-100 dark:border-stone-800 pb-3">
           <button
             type="button"
             onClick={() => setDayFilter("all")}
             className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${dayFilter === "all"
-                ? "bg-stone-900 text-amber-200"
-                : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
+                ? "bg-stone-900 text-amber-200 shadow-sm"
+                : "bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800"
               }`}
           >
             Todos los días
@@ -1257,8 +1317,8 @@ export function AdminCRMDashboard({
               type="button"
               onClick={() => setDayFilter(day)}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${dayFilter === day
-                  ? "bg-stone-900 text-amber-200"
-                  : "bg-[#FAF7F2] text-stone-600 hover:bg-stone-100 border border-stone-200"
+                  ? "bg-stone-900 text-amber-200 shadow-sm"
+                  : "bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800"
                 }`}
             >
               {day}
@@ -1283,16 +1343,16 @@ export function AdminCRMDashboard({
               });
               setEditingSession(null);
             }}
-            className="rounded-2xl bg-[#FAF7F2] border-2 border-amber-400 p-4 space-y-3"
+            className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border-2 border-amber-400/80 p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-stone-900">
+              <span className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
                 ✏️ Modificando Clase: {editingSession.title}
               </span>
               <button
                 type="button"
                 onClick={() => setEditingSession(null)}
-                className="text-xs text-stone-500"
+                className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
               >
                 Cancelar ✕
               </button>
@@ -1307,7 +1367,7 @@ export function AdminCRMDashboard({
                     title: e.target.value,
                   })
                 }
-                className="sm:col-span-2 rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+                className="sm:col-span-2 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
               />
               <select
                 value={editingSession.dayOfWeek || "Martes"}
@@ -1317,7 +1377,7 @@ export function AdminCRMDashboard({
                     dayOfWeek: e.target.value as DayOfWeek,
                   })
                 }
-                className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+                className="rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
               >
                 {(
                   [
@@ -1343,7 +1403,7 @@ export function AdminCRMDashboard({
                     startTime: e.target.value,
                   })
                 }
-                className="rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono font-bold"
+                className="rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
               >
                 <optgroup label="Mañana Oficial (:15 AM)">
                   <option value="06:15">06:15 AM</option>
@@ -1366,7 +1426,7 @@ export function AdminCRMDashboard({
                     instructor: e.target.value,
                   })
                 }
-                className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                className="rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
               >
                 {db.coaches.map((c) => (
                   <option key={c.id} value={c.name}>
@@ -1382,7 +1442,7 @@ export function AdminCRMDashboard({
                     roomId: e.target.value,
                   })
                 }
-                className="rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                className="rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
               >
                 {db.rooms.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -1393,7 +1453,7 @@ export function AdminCRMDashboard({
             </div>
             <button
               type="submit"
-              className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-4 py-2"
+              className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-4 py-2 transition shadow-sm"
             >
               Guardar Cambios de Horario / Coach
             </button>
@@ -1403,16 +1463,16 @@ export function AdminCRMDashboard({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-stone-200 text-[11px] uppercase tracking-wider text-stone-400">
+              <tr className="border-b border-stone-200 dark:border-stone-800 text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400">
                 <th className="py-2.5 px-3">Sucursal / Marca</th>
-                <th className="py-2.5 px-3">Día & Horario</th>
-                <th className="py-2.5 px-3">Clase & Salón</th>
+                <th className="py-2.5 px-3">Día &amp; Horario</th>
+                <th className="py-2.5 px-3">Clase &amp; Salón</th>
                 <th className="py-2.5 px-3">Coach</th>
                 <th className="py-2.5 px-3">Reservaron / Disponibilidad</th>
                 <th className="py-2.5 px-3 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {filteredSessions.map((ses) => {
                 const room = db.rooms.find((r) => r.id === ses.roomId);
                 const capacity = room?.spots.length || 12;
@@ -1431,41 +1491,41 @@ export function AdminCRMDashboard({
                   <tr
                     key={ses.id}
                     onClick={() => setSelectedSessionId(ses.id)}
-                    className={`cursor-pointer transition ${isSelected ? "bg-amber-50/90" : "hover:bg-stone-50"
+                    className={`cursor-pointer transition ${isSelected ? "bg-amber-50/90 dark:bg-amber-950/30" : "hover:bg-stone-50 dark:hover:bg-stone-800/40"
                       }`}
                   >
                     <td className="py-3 px-3">
                       <span
                         className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold ${ses.brand === "Devotion"
-                            ? "bg-orange-100 text-orange-800"
+                            ? "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300"
                             : "bg-stone-900 text-amber-200"
                           }`}
                       >
                         {ses.brand}
                       </span>
-                      <p className="font-semibold text-stone-800 mt-0.5">
+                      <p className="font-semibold text-stone-800 dark:text-stone-200 mt-0.5">
                         {ses.branchName}
                       </p>
                     </td>
-                    <td className="py-3 px-3 font-mono font-bold text-stone-900">
+                    <td className="py-3 px-3 font-mono font-bold text-stone-900 dark:text-stone-100">
                       <div className="flex items-center gap-1.5">
                         <span>{ses.startTime} hrs</span>
                         <span
                           className={`rounded px-1.5 py-0.5 text-[9px] font-sans font-bold ${isMorning
-                              ? "bg-amber-100 text-amber-900"
-                              : "bg-stone-200 text-stone-800"
+                              ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                              : "bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-300"
                             }`}
                         >
                           {isMorning ? "☀️ Mañana" : "🌙 Tarde"}
                         </span>
                       </div>
-                      <span className="block text-[10px] font-sans font-semibold text-stone-500 mt-0.5">
+                      <span className="block text-[10px] font-sans font-semibold text-stone-500 dark:text-stone-400 mt-0.5">
                         {ses.dayOfWeek || "Martes"}
                       </span>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-stone-900">
+                        <span className="font-bold text-stone-900 dark:text-stone-100">
                           {ses.title}
                         </span>
                         {ses.isSpecialClass && (
@@ -1474,23 +1534,23 @@ export function AdminCRMDashboard({
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-stone-500">
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
                         {ses.roomName}
                       </p>
                     </td>
-                    <td className="py-3 px-3 font-semibold text-stone-800">
+                    <td className="py-3 px-3 font-semibold text-stone-800 dark:text-stone-200">
                       {ses.instructor}
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-stone-900 text-white font-bold px-2.5 py-0.5 text-[11px]">
+                        <span className="rounded-full bg-stone-900 dark:bg-stone-800 text-white font-bold px-2.5 py-0.5 text-[11px]">
                           {sesBookings.length} / {capacity} reservaron
                         </span>
-                        <span className="text-emerald-700 font-bold">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                           ({available} libres)
                         </span>
                         {sesCheckedIn > 0 && (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
                             {sesCheckedIn} check-in
                           </span>
                         )}
@@ -1503,7 +1563,7 @@ export function AdminCRMDashboard({
                       <button
                         type="button"
                         onClick={() => setEditingSession(ses)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold px-2.5 py-1.5"
+                        className="inline-flex items-center gap-1 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-semibold px-2.5 py-1.5 transition"
                       >
                         <Edit3 className="h-3 w-3" /> Modificar
                       </button>
@@ -1511,7 +1571,7 @@ export function AdminCRMDashboard({
                         type="button"
                         onClick={() => setSessionToDelete(ses)}
                         title="Eliminar clase del calendario"
-                        className="inline-flex items-center rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5 transition"
+                        className="inline-flex items-center rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-500 hover:text-rose-700 dark:text-stone-400 dark:hover:text-rose-400 p-1.5 transition"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1519,6 +1579,13 @@ export function AdminCRMDashboard({
                   </tr>
                 );
               })}
+              {filteredSessions.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-stone-400 dark:text-stone-500 text-xs">
+                    No hay clases programadas para este filtro. Da clic en <strong>+ Agregar Clase</strong> para crear horarios.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1680,16 +1747,27 @@ export function AdminCRMDashboard({
           5. MAPA EN VIVO DE LA CLASE SELECCIONADA + BITÁCORA QR
          ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-amber-700" />
-              Mapa de Máquinas / Tapetes en Vivo: {activeSession?.title} (
-              {activeSession?.startTime} hrs)
+        <div className="lg:col-span-7 rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-6 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 dark:border-stone-800 pb-3">
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-[#7B6E86] dark:text-[#D2C483]" />
+              {activeSession ? (
+                <>
+                  Mapa de Máquinas / Tapetes en Vivo:{" "}
+                  <span className="text-[#7B6E86] dark:text-[#D2C483] font-semibold">{activeSession.title}</span> ({activeSession.startTime} hrs)
+                </>
+              ) : (
+                <>Mapa de Máquinas / Tapetes en Vivo</>
+              )}
             </h3>
+            {activeSession && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-medium">
+                {activeSession.branchName}
+              </span>
+            )}
           </div>
 
-          {activeSession && activeRoom && (
+          {activeSession && activeRoom ? (
             <StudioSpotMap
               room={activeRoom}
               session={activeSession}
@@ -1699,22 +1777,31 @@ export function AdminCRMDashboard({
               isAdminView
               onToggleMaintenance={onToggleMaintenance}
             />
+          ) : (
+            <div className="py-12 px-6 text-center rounded-2xl bg-stone-50 dark:bg-stone-900/50 border border-dashed border-stone-200 dark:border-stone-800">
+              <BarChart3 className="h-10 w-10 text-stone-400 dark:text-stone-500 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-bold text-stone-700 dark:text-stone-300">
+                No hay ninguna clase seleccionada o programada
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 max-w-md mx-auto">
+                Selecciona una clase en la tabla de horarios o crea una nueva con el botón "+ Agregar Clase" para visualizar la distribución de lugares y asistencia en tiempo real.
+              </p>
+            </div>
           )}
         </div>
 
         {/* Right 5 Cols: Active Bookings & QR Check-in Roster */}
-        <div className="lg:col-span-5 rounded-3xl bg-white border border-stone-200/90 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+        <div className="lg:col-span-5 rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
             <div>
-              <h3 className="font-bold text-base text-stone-900">
-                Reservas & Check-In QR ({activeBookings.length})
+              <h3 className="font-bold text-base text-stone-900 dark:text-stone-100">
+                Reservas &amp; Check-In QR ({activeBookings.length})
               </h3>
-              <p className="text-xs text-stone-500">
-                {checkedInCount} adentro · {botBookingsCount} agendadas por Bot
-                IA
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {checkedInCount} adentro · {botBookingsCount} agendadas por Bot IA
               </p>
             </div>
-            <QrCode className="h-5 w-5 text-amber-700" />
+            <QrCode className="h-5 w-5 text-amber-700 dark:text-[#D2C483]" />
           </div>
 
           <div className="space-y-3 max-h-[430px] overflow-y-auto pr-1">
@@ -1725,7 +1812,7 @@ export function AdminCRMDashboard({
               return (
                 <div
                   key={bk.id}
-                  className="rounded-2xl border border-stone-200 p-3.5 hover:border-stone-300 transition flex items-center justify-between gap-3"
+                  className="rounded-2xl border border-stone-200 dark:border-stone-800 p-3.5 hover:border-stone-300 dark:hover:border-stone-700 transition flex items-center justify-between gap-3 bg-stone-50/50 dark:bg-stone-900/50"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1737,10 +1824,10 @@ export function AdminCRMDashboard({
                       >
                         {bk.spotId}
                       </span>
-                      <p className="font-bold text-xs text-stone-900 truncate">
+                      <p className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
                         {bk.clientName}
                       </p>
-                      <span className="rounded-md bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold uppercase text-stone-600">
+                      <span className="rounded-md bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-1.5 py-0.5 text-[10px] font-bold uppercase text-stone-600 dark:text-stone-400">
                         {bk.bookedVia === "whatsapp_bot"
                           ? "🤖 Bot IA"
                           : bk.bookedVia === "kiosk_tablet"
@@ -1756,10 +1843,10 @@ export function AdminCRMDashboard({
                                     : "🌐 Web"}
                       </span>
                     </div>
-                    <p className="text-xs text-stone-600 mt-1 truncate">
+                    <p className="text-xs text-stone-600 dark:text-stone-400 mt-1 truncate">
                       {bk.branchName} · {bk.sessionTitle} ({bk.startTime})
                     </p>
-                    <p className="text-[10px] font-mono text-stone-400 mt-0.5">
+                    <p className="text-[10px] font-mono text-stone-400 dark:text-stone-500 mt-0.5">
                       {bk.checkedInKioskLabel
                         ? `✅ Escaneó en ${bk.checkedInKioskLabel}`
                         : `QR: ${bk.qrToken}`}
@@ -1768,8 +1855,8 @@ export function AdminCRMDashboard({
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {isCheckedIn ? (
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 text-emerald-800 px-2.5 py-1.5 text-[11px] font-bold">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-1.5 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         Asistió
                       </span>
                     ) : (
@@ -1777,14 +1864,14 @@ export function AdminCRMDashboard({
                         <button
                           type="button"
                           onClick={() => onScanInKiosk(bk.qrToken)}
-                          className="rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] px-2.5 py-1.5 transition"
+                          className="rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 font-bold text-[11px] px-2.5 py-1.5 transition"
                         >
                           Check-in QR
                         </button>
                         <button
                           type="button"
                           onClick={() => onCancelBooking(bk.id)}
-                          className="rounded-xl bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5 transition"
+                          className="rounded-xl bg-stone-100 hover:bg-rose-100 dark:bg-stone-800 dark:hover:bg-rose-950 text-stone-500 hover:text-rose-700 dark:text-stone-400 dark:hover:text-rose-400 p-1.5 transition"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -1794,6 +1881,12 @@ export function AdminCRMDashboard({
                 </div>
               );
             })}
+
+            {activeBookings.length === 0 && (
+              <div className="py-8 text-center text-stone-400 dark:text-stone-500 text-xs">
+                No hay reservaciones registradas para esta sesión aún.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1801,14 +1894,14 @@ export function AdminCRMDashboard({
       {/* =====================================================================
           6. DIRECTORIO CRUD DE ALUMNOS / CLIENTES Y CONTROL DE TOKENS
          ===================================================================== */}
-      <div className="rounded-3xl bg-white border border-stone-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-[#1C1824] border border-stone-200/90 dark:border-stone-800 p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-              <Users className="h-5 w-5 text-stone-700" />
-              Directorio CRUD de Alumnos & Control de Tokens ({db.clients.length})
+            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+              <Users className="h-5 w-5 text-stone-700 dark:text-stone-300" />
+              Directorio CRUD de Alumnos &amp; Control de Tokens ({db.clients.length})
             </h3>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
               Crea, edita o elimina perfiles de alumnos (hombres y mujeres), ajusta sus tokens, lugar favorito, notas médicas y abre su chat de WhatsApp
             </p>
           </div>
@@ -1821,7 +1914,7 @@ export function AdminCRMDashboard({
                   activeDrawer === "new_client" ? null : "new_client"
                 )
               }
-              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-200 font-bold text-xs px-3.5 py-2 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-3.5 py-2 transition shadow-sm"
             >
               <UserPlus className="h-3.5 w-3.5" /> + Nuevo Alumno(a)
             </button>
@@ -1832,7 +1925,7 @@ export function AdminCRMDashboard({
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
                 placeholder="Buscar alumno(a) o WhatsApp..."
-                className="w-full rounded-xl bg-[#FAF7F2] border border-stone-300 pl-9 pr-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-700"
+                className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 pl-9 pr-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
               />
             </div>
           </div>
@@ -1856,23 +1949,23 @@ export function AdminCRMDashboard({
               });
               setEditingClient(null);
             }}
-            className="rounded-2xl bg-[#FAF7F2] border-2 border-amber-400 p-4 space-y-3"
+            className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border-2 border-amber-400/80 p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-stone-900">
+              <span className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
                 ✏️ Editando Alumno(a): {editingClient.name}
               </span>
               <button
                 type="button"
                 onClick={() => setEditingClient(null)}
-                className="text-xs text-stone-500"
+                className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
               >
                 Cancelar ✕
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Nombre Completo
                 </label>
                 <input
@@ -1882,11 +1975,11 @@ export function AdminCRMDashboard({
                   onChange={(e) =>
                     setEditingClient({ ...editingClient, name: e.target.value })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-bold bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Teléfono WhatsApp
                 </label>
                 <input
@@ -1896,11 +1989,11 @@ export function AdminCRMDashboard({
                   onChange={(e) =>
                     setEditingClient({ ...editingClient, phone: e.target.value })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono font-bold bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Correo Electrónico
                 </label>
                 <input
@@ -1909,11 +2002,11 @@ export function AdminCRMDashboard({
                   onChange={(e) =>
                     setEditingClient({ ...editingClient, email: e.target.value })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Sucursal Base
                 </label>
                 <select
@@ -1924,7 +2017,7 @@ export function AdminCRMDashboard({
                       homeBranchName: e.target.value,
                     })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 >
                   {db.branches.map((b) => (
                     <option key={b.id} value={b.name}>
@@ -1934,7 +2027,7 @@ export function AdminCRMDashboard({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Paquete Activo
                 </label>
                 <input
@@ -1946,11 +2039,11 @@ export function AdminCRMDashboard({
                       activePackageName: e.target.value,
                     })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Tokens Disponibles
                 </label>
                 <input
@@ -1963,11 +2056,11 @@ export function AdminCRMDashboard({
                       creditsRemaining: Math.max(0, Number(e.target.value) || 0),
                     })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-extrabold bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-extrabold bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Lugar Favorito (1-12)
                 </label>
                 <input
@@ -1979,11 +2072,11 @@ export function AdminCRMDashboard({
                       preferredSpot: e.target.value,
                     })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-mono bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs font-mono bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                <label className="block text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 mb-1">
                   Notas Médicas / Lesiones
                 </label>
                 <input
@@ -1995,13 +2088,13 @@ export function AdminCRMDashboard({
                       medicalNotes: e.target.value,
                     })
                   }
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs bg-white"
+                  className="w-full rounded-xl border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#7B6E86]/20"
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="rounded-xl bg-stone-900 text-amber-200 font-bold text-xs px-5 py-2"
+              className="rounded-xl bg-stone-900 hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 text-[#D2C483] font-bold text-xs px-5 py-2 transition shadow-sm"
             >
               Guardar Cambios del Alumno(a)
             </button>
@@ -2011,7 +2104,7 @@ export function AdminCRMDashboard({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-stone-200 text-[11px] uppercase tracking-wider text-stone-400">
+              <tr className="border-b border-stone-200 dark:border-stone-800 text-[11px] uppercase tracking-wider text-stone-500 dark:text-stone-400">
                 <th className="py-3 px-3">Alumno(a)</th>
                 <th className="py-3 px-3">Sucursal Base / WhatsApp</th>
                 <th className="py-3 px-3">Paquete Activo</th>
@@ -2020,26 +2113,26 @@ export function AdminCRMDashboard({
                 <th className="py-3 px-3 text-right">Acciones CRUD</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 text-xs">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800 text-xs">
               {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-[#FAF7F2]/60">
+                <tr key={client.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/40 transition">
                   <td className="py-3.5 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-full bg-stone-900 text-amber-200 font-bold text-xs flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-full bg-stone-900 dark:bg-stone-800 text-amber-200 font-bold text-xs flex items-center justify-center shrink-0">
                         {client.avatarInitials}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-bold text-stone-900">
+                          <p className="font-bold text-stone-900 dark:text-stone-100">
                             {client.name}
                           </p>
                           {client.isUnregisteredLead && (
-                            <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5">
+                            <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[10px] font-bold px-2 py-0.5 border border-rose-200 dark:border-rose-800">
                               Sin cuenta
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-stone-400">
+                        <p className="text-[11px] text-stone-400 dark:text-stone-500">
                           {client.totalAttended} asistencias ·{" "}
                           {client.noShowsCount || 0} faltas
                         </p>
@@ -2047,39 +2140,39 @@ export function AdminCRMDashboard({
                     </div>
                   </td>
                   <td className="py-3.5 px-3">
-                    <p className="font-semibold text-stone-800">
+                    <p className="font-semibold text-stone-800 dark:text-stone-200">
                       {client.homeBranchName || "Devotion Zibatá"}
                     </p>
-                    <p className="font-mono text-[11px] text-stone-500">
+                    <p className="font-mono text-[11px] text-stone-500 dark:text-stone-400">
                       {client.phone}
                     </p>
                   </td>
                   <td className="py-3.5 px-3">
-                    <p className="font-semibold text-stone-800">
+                    <p className="font-semibold text-stone-800 dark:text-stone-200">
                       {client.activePackageName}
                     </p>
-                    <p className="text-[10px] text-stone-400">
+                    <p className="text-[10px] text-stone-400 dark:text-stone-500">
                       Vence: {client.packageExpiresAt}
                     </p>
                   </td>
                   <td className="py-3.5 px-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${client.creditsRemaining > 2
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                           : client.creditsRemaining > 0
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-rose-100 text-rose-800"
+                            ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                            : "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
                         }`}
                     >
                       {client.creditsRemaining} tokens
                     </span>
                   </td>
                   <td className="py-3.5 px-3">
-                    <span className="font-mono font-bold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded">
+                    <span className="font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
                       {client.preferredSpot || "—"}
                     </span>
                     {client.medicalNotes && (
-                      <p className="text-[11px] text-stone-500 mt-0.5 max-w-xs truncate">
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 max-w-xs truncate">
                         {client.medicalNotes}
                       </p>
                     )}
@@ -2088,7 +2181,7 @@ export function AdminCRMDashboard({
                     <button
                       type="button"
                       onClick={() => setEditingClient(client)}
-                      className="inline-flex items-center gap-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold px-2.5 py-1.5 transition"
+                      className="inline-flex items-center gap-1 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-semibold px-2.5 py-1.5 transition"
                     >
                       <Edit3 className="h-3 w-3" /> Editar
                     </button>
@@ -2097,7 +2190,7 @@ export function AdminCRMDashboard({
                       onClick={() =>
                         onRechargeClient(client.id, "pkg-devotion-8")
                       }
-                      className="inline-flex items-center gap-1 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-2.5 py-1.5 transition"
+                      className="inline-flex items-center gap-1 rounded-xl bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-semibold px-2.5 py-1.5 transition"
                     >
                       <Plus className="h-3 w-3" /> +8 Tokens
                     </button>
@@ -2112,7 +2205,7 @@ export function AdminCRMDashboard({
                       type="button"
                       onClick={() => onDeleteClient(client.id)}
                       title="Eliminar alumno(a) del CRM y base de datos"
-                      className="inline-flex items-center rounded-xl bg-stone-100 hover:bg-rose-100 text-stone-500 hover:text-rose-700 p-1.5 transition"
+                      className="inline-flex items-center rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-500 dark:text-stone-400 hover:text-rose-700 dark:hover:text-rose-400 p-1.5 transition"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -2121,7 +2214,7 @@ export function AdminCRMDashboard({
               ))}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-stone-400 text-xs">
+                  <td colSpan={7} className="text-center py-10 text-stone-400 dark:text-stone-500 text-xs">
                     No hay alumnos registrados aún. Haz clic en <strong>+ Nuevo Alumno(a)</strong> arriba para dar de alta al primero.
                   </td>
                 </tr>
