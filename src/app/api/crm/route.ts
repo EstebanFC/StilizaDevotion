@@ -598,6 +598,7 @@ export async function POST(req: NextRequest) {
           roomName: room.name,
           instructor,
           instructorAvatar: initials || "CO",
+          date: "2026-10-20",
           dayOfWeek: item.dayOfWeek,
           timeBlock,
           startTime: timeStr,
