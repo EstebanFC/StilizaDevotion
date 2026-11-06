@@ -301,7 +301,7 @@ export function LoginGateway({
                 isDark ? "text-[#ABA0B5]" : "text-[#7B6E86]"
               }`}
             >
-              {isLocked ? "BLOQUEADO" : "BLINDAJE ACTIVO"}
+              {isLocked ? "ACCESO BLOQUEADO" : "CONEXIÓN SEGURA"}
             </span>
           </div>
         </div>
@@ -731,7 +731,7 @@ export function LoginGateway({
         }`}
       >
         <Lock className="h-3.5 w-3.5 text-[#D2C483]" />
-        <span>Stiliza & Devotion OS · Sesión Criptográfica HMAC-SHA256</span>
+        <span>Stiliza & Devotion Studio OS · Acceso Autorizado</span>
       </footer>
     </div>
   );

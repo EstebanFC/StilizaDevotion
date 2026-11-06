@@ -588,7 +588,7 @@ export async function POST(req: NextRequest) {
           title:
             item.title ||
             `${
-              room.brand === "Devotion" ? "HOT PILATES 38°C" : "REFORMER"
+              room.brand === "Devotion" ? "HOT PILATES 33°C" : "REFORMER"
             } · ${branch?.name}`,
           discipline: room.discipline,
           branchId: item.branchId,
@@ -826,6 +826,36 @@ export async function POST(req: NextRequest) {
         await saveStateToSupabase(state);
       }
       return NextResponse.json({ success: true, state });
+    }
+
+    if (action === "update_room_layout") {
+      const { roomId, spots, layoutRows, temperature, name } = body;
+      const state = readDB();
+      const room = state.rooms.find((r) => r.id === roomId);
+      if (!room) {
+        return NextResponse.json(
+          { success: false, error: "Salón no encontrado" },
+          { status: 404 }
+        );
+      }
+      if (Array.isArray(layoutRows)) {
+        room.layoutRows = layoutRows;
+      }
+      if (Array.isArray(spots)) {
+        room.spots = spots;
+      }
+      if (typeof temperature === "string") {
+        room.temperature = temperature;
+      }
+      if (typeof name === "string" && name.trim()) {
+        room.name = name.trim();
+      }
+      if (room.layoutRows && room.layoutRows.length > 0) {
+        room.rows = room.layoutRows.length;
+        room.cols = Math.max(...room.layoutRows.map((r) => r.length), 1);
+      }
+      await saveStateToSupabase(state);
+      return NextResponse.json({ success: true, state, updatedRoom: room });
     }
 
     if (action === "cancel_booking") {

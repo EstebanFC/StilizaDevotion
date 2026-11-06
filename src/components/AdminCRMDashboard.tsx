@@ -7,6 +7,8 @@ import {
   CRMDatabaseState,
   DayOfWeek,
   ExternalAggregator,
+  RoomLayoutCell,
+  SpotConfig,
   StudioBrand,
 } from "@/types/crm";
 import { StudioSpotMap } from "@/components/StudioSpotMap";
@@ -132,6 +134,13 @@ interface AdminCRMDashboardProps {
   ) => Promise<{ success: boolean; error?: string }>;
   onRechargeClient: (clientId: string, packageId: string) => Promise<void>;
   onToggleMaintenance: (roomId: string, spotId: string) => Promise<void>;
+  onUpdateRoomLayout?: (updatedRoom: {
+    roomId: string;
+    name: string;
+    temperature: string;
+    spots: SpotConfig[];
+    layoutRows: RoomLayoutCell[][];
+  }) => Promise<void>;
   onCancelBooking: (bookingId: string) => Promise<void>;
   onScanInKiosk: (qrToken: string) => void;
   onOpenClientChat: (clientId: string) => void;
@@ -166,6 +175,7 @@ export function AdminCRMDashboard({
   onUpdateBranchPin,
   onRechargeClient,
   onToggleMaintenance,
+  onUpdateRoomLayout,
   onCancelBooking,
   onScanInKiosk,
   onOpenClientChat,
@@ -1110,7 +1120,7 @@ export function AdminCRMDashboard({
                       }
                       className="rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-300 font-bold px-2 py-1 hover:bg-orange-100 transition"
                     >
-                      🔥 Solo Devotion (Hot 38°C)
+                      🔥 Solo Devotion (Hot 33°C)
                     </button>
                     <button
                       type="button"
@@ -1177,7 +1187,7 @@ export function AdminCRMDashboard({
                           </div>
                           <span className="text-[10px] text-stone-500 dark:text-stone-400 block mt-0.5">
                             {br.brand === "Devotion"
-                              ? "Hot Studio Infrarrojo 38°C"
+                              ? "Hot Studio Infrarrojo 33°C"
                               : "Salón Reformer"}
                           </span>
                         </div>
@@ -1304,7 +1314,7 @@ export function AdminCRMDashboard({
                     "STRETCHING",
                     "REFORMER FLOW",
                     "ATHLETIC CORE",
-                    "CANDLELIGHT 38°C",
+                    "CANDLELIGHT 33°C",
                   ].map((preset) => (
                     <button
                       key={preset}
@@ -1812,7 +1822,7 @@ export function AdminCRMDashboard({
               className="rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:bg-white dark:focus:bg-stone-950 focus:border-[#7B6E86] focus:ring-2 focus:ring-[#7B6E86]/20 outline-none"
             >
               <option value="reformer">Especialidad: Pilates Reformer</option>
-              <option value="hot_pilates">Especialidad: Hot Pilates 38°C</option>
+              <option value="hot_pilates">Especialidad: Hot Pilates 33°C</option>
               <option value="ambas">Ambas Disciplinas</option>
             </select>
             <input
@@ -2699,6 +2709,7 @@ export function AdminCRMDashboard({
               onSelectSpot={() => { }}
               isAdminView
               onToggleMaintenance={onToggleMaintenance}
+              onUpdateRoomLayout={onUpdateRoomLayout}
             />
           ) : (
             <div className="py-12 px-6 text-center rounded-2xl bg-stone-50 dark:bg-stone-900/50 border border-dashed border-stone-200 dark:border-stone-800">

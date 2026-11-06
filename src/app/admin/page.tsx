@@ -519,6 +519,18 @@ export default function AdminOnlyPortalPage() {
               const data = await res.json();
               if (data.state) setDb(data.state);
             }}
+            onUpdateRoomLayout={async (payload) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_room_layout",
+                  ...payload,
+                }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+            }}
             onCancelBooking={async (bookingId) => {
               const res = await fetch("/api/crm", {
                 method: "POST",

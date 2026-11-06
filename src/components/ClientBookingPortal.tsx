@@ -181,7 +181,7 @@ export function ClientBookingPortal({
                 Paquetes & Membresías Stiliza Devotion
               </h3>
               <p className="text-xs text-stone-300">
-                Válidos para Pilates Reformer y Hot Pilates 38°C en todas las
+                Válidos para Pilates Reformer y Hot Pilates 33°C en todas las
                 sucursales
               </p>
             </div>
@@ -277,7 +277,7 @@ export function ClientBookingPortal({
                     : "text-stone-600 hover:text-stone-900"
                 }`}
               >
-                <Flame className="h-3.5 w-3.5" /> Hot Pilates 38°C
+                <Flame className="h-3.5 w-3.5" /> Hot Pilates 33°C
               </button>
             </div>
 

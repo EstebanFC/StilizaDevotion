@@ -304,7 +304,7 @@ const UNREGISTERED_MENU_OPTIONS = [
   {
     id: "opt_about",
     title: "✨ ¿Quiénes somos?",
-    description: "Reformer y Hot Pilates 38°C",
+    description: "Reformer y Hot Pilates 33°C",
   },
   {
     id: "opt_branches",
@@ -522,7 +522,7 @@ export function processAIChatTurn(params: {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `🎁 **Paquetes y Membresías Stiliza & Devotion**:\n\n• **Single Drop-In (1 Token)**: $350 MXN (Vigencia 15 días)\n• **Sculpt & Flow (8 Tokens)**: $2,400 MXN ($300/clase)\n• **Sculpt & Burn (16 Tokens)**: $4,200 MXN ($262/clase · ¡Más Popular!)\n• **Black Pass Ilimitado (30 Tokens)**: $5,900 MXN\n\n✨ *Todos los paquetes son válidos en nuestras 6 sucursales de Reformer y Hot Pilates 38°C.*\n\nRegístrate ahora para adquirir tu paquete en Kiosco o recepción:`,
+        text: `🎁 **Paquetes y Membresías Stiliza & Devotion**:\n\n• **Single Drop-In (1 Token)**: $350 MXN (Vigencia 15 días)\n• **Sculpt & Flow (8 Tokens)**: $2,400 MXN ($300/clase)\n• **Sculpt & Burn (16 Tokens)**: $4,200 MXN ($262/clase · ¡Más Popular!)\n• **Black Pass Ilimitado (30 Tokens)**: $5,900 MXN\n\n✨ *Todos los paquetes son válidos en nuestras 6 sucursales de Reformer y Hot Pilates 33°C.*\n\nRegístrate ahora para adquirir tu paquete en Kiosco o recepción:`,
         timestamp: nowTime,
         interactiveType: "button",
         interactiveTitle: "Paquetes Stiliza & Devotion",
@@ -555,7 +555,7 @@ export function processAIChatTurn(params: {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `✨ **Bienvenido(a) al universo Stiliza & Devotion**:\n\n• **Stiliza (Pilates Reformer)**: Entrenamientos de alta intensidad y bajo impacto sobre máquinas Reformer de última generación. Core profundo, alineación postural y tono muscular con música envolvente.\n\n• **Devotion (Inferno Hot Pilates 38°C)**: Sesiones a 38°C con calor infrarrojo lejano. Estimula colágeno, desintoxica el cuerpo y maximiza la quema calórica con impacto cero en articulaciones.\n\n🎒 **¿Qué llevar a tu clase?** Calcetas con agarre antiderrapante (obligatorias en Reformer), toalla, termo de agua y ropa deportiva cómoda.`,
+        text: `✨ **Bienvenido(a) al universo Stiliza & Devotion**:\n\n• **Stiliza (Pilates Reformer)**: Entrenamientos de alta intensidad y bajo impacto sobre máquinas Reformer de última generación. Core profundo, alineación postural y tono muscular con música envolvente.\n\n• **Devotion (Inferno Hot Pilates 33°C)**: Sesiones a 33°C con calor infrarrojo lejano. Estimula colágeno, desintoxica el cuerpo y maximiza la quema calórica con impacto cero en articulaciones.\n\n🎒 **¿Qué llevar a tu clase?** Calcetas con agarre antiderrapante (obligatorias en Reformer), toalla, termo de agua y ropa deportiva cómoda.`,
         timestamp: nowTime,
         interactiveType: "button",
         interactiveTitle: "Conoce el Estudio",
@@ -588,7 +588,7 @@ export function processAIChatTurn(params: {
         id: `msg-${Date.now()}-bot`,
         clientId: client.id,
         sender: "bot",
-        text: `📍 **Nuestras 6 Sucursales Oficiales**:\n\n1️⃣ **Stiliza San Isidro (STSI)** · Reformer (5 lugares en fila)\n2️⃣ **Stiliza Juriquilla (STJU)** · Reformer (8 lugares en fila)\n3️⃣ **Stiliza Campanario (STCA)** · Reformer Boutique\n4️⃣ **Devotion Zibatá (DEZI)** · Hot Studio 38°C (12 tapetes)\n5️⃣ **Devotion Juriquilla (DEJU)** · Hot Studio 38°C (12 tapetes)\n6️⃣ **Devotion Campanario (DECA)** · Hot Studio 38°C (12 tapetes)\n\n¿Deseas registrarte para reservar tu lugar?`,
+        text: `📍 **Nuestras 6 Sucursales Oficiales**:\n\n1️⃣ **Stiliza San Isidro (STSI)** · Reformer (5 lugares en fila)\n2️⃣ **Stiliza Juriquilla (STJU)** · Reformer (8 lugares en fila)\n3️⃣ **Stiliza Campanario (STCA)** · Reformer Boutique\n4️⃣ **Devotion Zibatá (DEZI)** · Hot Studio 33°C (12 tapetes)\n5️⃣ **Devotion Juriquilla (DEJU)** · Hot Studio 33°C (12 tapetes)\n6️⃣ **Devotion Campanario (DECA)** · Hot Studio 33°C (12 tapetes)\n\n¿Deseas registrarte para reservar tu lugar?`,
         timestamp: nowTime,
         interactiveType: "button",
         interactiveTitle: "Nuestras Sucursales",
@@ -620,7 +620,7 @@ export function processAIChatTurn(params: {
       id: `msg-${Date.now()}-bot`,
       clientId: client.id,
       sender: "bot",
-      text: `¡Hola! 👋 Te damos la bienvenida a **Stiliza & Devotion**.\n\nVemos que tu número (**${client.phone}**) aún no tiene una cuenta registrada en nuestro sistema.\n\nPara poder reservar tu máquina Reformer o tapete de Hot Pilates 38°C, por favor selecciona una opción:`,
+      text: `¡Hola! 👋 Te damos la bienvenida a **Stiliza & Devotion**.\n\nVemos que tu número (**${client.phone}**) aún no tiene una cuenta registrada en nuestro sistema.\n\nPara poder reservar tu máquina Reformer o tapete de Hot Pilates 33°C, por favor selecciona una opción:`,
       timestamp: nowTime,
       interactiveType: "list",
       interactiveTitle: "Menú Stiliza & Devotion",
@@ -735,7 +735,7 @@ export function processAIChatTurn(params: {
       id: `msg-${Date.now()}-bot`,
       clientId: client.id,
       sender: "bot",
-      text: `🎁 **Promos y Clases Especiales Esta Semana**:\n\n🎧 **DJ Live Sunset Reformer** · Juriquilla (Viernes 19:30 hrs · 1 Token)\n🕯️ **Candlelight Soundbath & Hot Pilates 38°C** · Campanario (Sábado 10:30 hrs · 1 Token)\n🎁 **Promo Kiosco**: Recarga Pack 16 y recibe **+3 Tokens Gratis** (19 tokens en total).\n\n¿Quieres apartar tu lugar para alguna de nuestras clases?`,
+      text: `🎁 **Promos y Clases Especiales Esta Semana**:\n\n🎧 **DJ Live Sunset Reformer** · Juriquilla (Viernes 19:30 hrs · 1 Token)\n🕯️ **Candlelight Soundbath & Hot Pilates 33°C** · Campanario (Sábado 10:30 hrs · 1 Token)\n🎁 **Promo Kiosco**: Recarga Pack 16 y recibe **+3 Tokens Gratis** (19 tokens en total).\n\n¿Quieres apartar tu lugar para alguna de nuestras clases?`,
       timestamp: nowTime,
       interactiveType: "button",
       interactiveTitle: "Promos y Eventos",
@@ -1104,7 +1104,7 @@ export function processAIChatTurn(params: {
         clientId: client.id,
         sender: "bot",
         text: `🗓️ **Paso 2 de 4 · Selecciona el Día**\n\nHas elegido **${branch.name}** (${
-          branch.brand === "Devotion" ? "Hot Pilates 38°C" : "Reformer"
+          branch.brand === "Devotion" ? "Hot Pilates 33°C" : "Reformer"
         }).\n\n¿Para qué día te gustaría reservar tu clase?`,
         timestamp: nowTime,
         interactiveType: "list",
@@ -1147,7 +1147,7 @@ export function processAIChatTurn(params: {
         title: b.name.slice(0, 24),
         description:
           b.brand === "Devotion"
-            ? "Hot Pilates Infrarrojo 38°C"
+            ? "Hot Pilates Infrarrojo 33°C"
             : "Pilates Reformer Boutique",
       })),
       suggestedSpots: [

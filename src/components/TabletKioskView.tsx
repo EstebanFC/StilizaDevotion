@@ -822,7 +822,7 @@ export function TabletKioskView({
                   <div className="mt-2 pt-2 border-t border-current/15 flex items-center justify-between text-xs font-bold">
                     <span>
                       {ses.discipline === "hot_pilates"
-                        ? "🔥 Hot Pilates 38°C"
+                        ? "🔥 Hot Pilates 33°C"
                         : "✨ Reformer"}
                     </span>
                     <span>{freeSpots} lugares libres</span>

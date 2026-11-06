@@ -249,7 +249,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       name: "Hot Studio · Devotion Zibatá",
       discipline: "hot_pilates",
       temperature:
-        "38.5°C Infrarrojo · Frente: 1,2,Coach,3,4,5 | Atrás: 12,11,10,9,8,7,6",
+        "33°C Infrarrojo · Frente: 1,2,Coach,3,4,5 | Atrás: 12,11,10,9,8,7,6",
       rows: 2,
       cols: 7,
       spots: layoutDevotionZibata.spots,
@@ -263,7 +263,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       name: "Hot Studio · Devotion Juriquilla",
       discipline: "hot_pilates",
       temperature:
-        "38.5°C Infrarrojo · Frente: 6,5,4,Coach,3,2,1 | Atrás: 7,8,9,10,11,12",
+        "33°C Infrarrojo · Frente: 6,5,4,Coach,3,2,1 | Atrás: 7,8,9,10,11,12",
       rows: 2,
       cols: 7,
       spots: layoutDevotionJuriquilla.spots,
@@ -277,7 +277,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       name: "Hot Studio · Devotion Campanario",
       discipline: "hot_pilates",
       temperature:
-        "38.5°C Infrarrojo · Frente: 1,2,3,Coach,4,5,6 | Atrás: 7,8,9,10,11,12",
+        "33°C Infrarrojo · Frente: 1,2,3,Coach,4,5,6 | Atrás: 7,8,9,10,11,12",
       rows: 2,
       cols: 7,
       spots: layoutDevotionCampanario.spots,
@@ -300,7 +300,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       avatar: "PV",
       specialty: "hot_pilates",
       occupancyRate: 95,
-      vibeBadge: "🔥 Queen del Inferno 38°C",
+      vibeBadge: "🔥 Queen del Inferno 33°C",
     },
     {
       id: "coach-3",
@@ -343,7 +343,7 @@ export function getInitialSeedData(): CRMDatabaseState {
     },
     {
       id: "ev-2",
-      title: "Candlelight Soundbath & Hot Pilates 38°C",
+      title: "Candlelight Soundbath & Hot Pilates 33°C",
       description:
         "40 min de Sculpt intenso con calor infrarrojo + 15 min de inmersión sonora.",
       type: "evento",
@@ -1044,7 +1044,7 @@ export function getInitialSeedData(): CRMDatabaseState {
       id: "msg-2",
       clientId: "cli-1",
       sender: "bot",
-      text: "¡Hola Valeria! 🤍 Tu lugar en **Inferno Hot Pilates 38°C · Zibatá** (18:30 hrs) en el **Lugar #3** (enfrente, a la derecha del Coach) ha quedado reservado.\n\nTe descontamos 1 token (te quedan **11 tokens** disponibles). Aquí tienes tu código QR de acceso para escanear en el Kiosco al llegar:",
+      text: "¡Hola Valeria! 🤍 Tu lugar en **Inferno Hot Pilates 33°C · Zibatá** (18:30 hrs) en el **Lugar #3** (enfrente, a la derecha del Coach) ha quedado reservado.\n\nTe descontamos 1 token (te quedan **11 tokens** disponibles). Aquí tienes tu código QR de acceso para escanear en el Kiosco al llegar:",
       timestamp: "11:20 AM",
       bookingAttachment: bookings[0],
     },

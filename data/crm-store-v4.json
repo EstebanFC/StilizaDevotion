@@ -418,7 +418,7 @@
           }
         ]
       ],
-      "temperature": "38.5°C Infrarrojo · Frente: 1,2,Coach,3,4,5 | Atrás: 12,11,10,9,8,7,6"
+      "temperature": "33°C Infrarrojo · Frente: 1,2,Coach,3,4,5 | Atrás: 12,11,10,9,8,7,6"
     },
     {
       "id": "room-devotion-juriquilla",
@@ -609,7 +609,7 @@
           }
         ]
       ],
-      "temperature": "38.5°C Infrarrojo · Frente: 6,5,4,Coach,3,2,1 | Atrás: 7,8,9,10,11,12"
+      "temperature": "33°C Infrarrojo · Frente: 6,5,4,Coach,3,2,1 | Atrás: 7,8,9,10,11,12"
     },
     {
       "id": "room-devotion-campanario",
@@ -800,7 +800,7 @@
           }
         ]
       ],
-      "temperature": "38.5°C Infrarrojo · Frente: 1,2,3,Coach,4,5,6 | Atrás: 7,8,9,10,11,12"
+      "temperature": "33°C Infrarrojo · Frente: 1,2,3,Coach,4,5,6 | Atrás: 7,8,9,10,11,12"
     }
   ],
   "clients": [],
@@ -1016,7 +1016,7 @@
     {
       "id": "ev-2",
       "type": "evento",
-      "title": "Candlelight Soundbath & Hot Pilates 38°C",
+      "title": "Candlelight Soundbath & Hot Pilates 33°C",
       "branchId": "br-devotion-campanario",
       "dateLabel": "Sábado 10:30 hrs",
       "priceText": "1 Token · Cupo 12 lugares",

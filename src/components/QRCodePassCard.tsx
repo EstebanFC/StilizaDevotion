@@ -78,7 +78,7 @@ export function QRCodePassCard({
           >
             {isHot ? (
               <>
-                <Flame className="h-3 w-3 text-orange-400" /> Hot Pilates 38°C
+                <Flame className="h-3 w-3 text-orange-400" /> Hot Pilates 33°C
               </>
             ) : (
               <>
