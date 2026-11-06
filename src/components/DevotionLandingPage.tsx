@@ -192,26 +192,6 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
           <div className="flex items-center gap-3">
             <ThemeToggleButton />
 
-            {/* Acceso Staff / Kiosco */}
-            <div className="hidden sm:flex items-center gap-1.5 border-r border-[#7B6E86]/20 pr-3">
-              <Link
-                href="/kiosco"
-                className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-stone-600 dark:text-stone-400 hover:text-[#7B6E86] dark:hover:text-[#D2C483] hover:bg-stone-100 dark:hover:bg-white/5 transition flex items-center gap-1"
-                title="Modo Tablet Kiosco en Recepción"
-              >
-                <Tablet className="h-3.5 w-3.5" />
-                <span>Kiosco</span>
-              </Link>
-              <Link
-                href="/admin"
-                className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-stone-600 dark:text-stone-400 hover:text-[#7B6E86] dark:hover:text-[#D2C483] hover:bg-stone-100 dark:hover:bg-white/5 transition flex items-center gap-1"
-                title="Consola de Administración OS"
-              >
-                <Lock className="h-3 w-3" />
-                <span>Admin</span>
-              </Link>
-            </div>
-
             {/* Botón Principal CTA */}
             <a
               href={buildWhatsAppLink("Hola! Quiero reservar una clase muestra en Devotion")}
@@ -238,7 +218,7 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
 
         {/* Menú Móvil desplegable */}
         {mobileMenuOpen && (
-          <div className="lg:hidden px-4 pt-2 pb-6 bg-[#FAF8F5] dark:bg-[#16121C] border-b border-[#7B6E86]/20 space-y-3">
+          <div className="lg:hidden px-4 pt-2 pb-5 bg-[#FAF8F5] dark:bg-[#16121C] border-b border-[#7B6E86]/20 space-y-3">
             <div className="grid grid-cols-2 gap-2 text-xs font-bold pt-2">
               <a
                 href="#experiencia"
@@ -282,21 +262,6 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
               >
                 Preguntas
               </a>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t border-[#7B6E86]/20">
-              <Link
-                href="/kiosco"
-                className="flex-1 py-2 text-center rounded-xl bg-stone-200 dark:bg-stone-800 text-xs font-bold"
-              >
-                Acceso Kiosco Tablet
-              </Link>
-              <Link
-                href="/admin"
-                className="flex-1 py-2 text-center rounded-xl bg-[#7B6E86]/20 border border-[#7B6E86]/40 text-[#7B6E86] dark:text-[#D2C483] text-xs font-bold"
-              >
-                Acceso Admin OS
-              </Link>
             </div>
           </div>
         )}
@@ -359,7 +324,7 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
               </div>
 
               {/* Social Proof & Garantía de Alianzas */}
-              <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-stone-500 dark:text-stone-400 font-medium border-t border-stone-200 dark:border-stone-800/80">
+              <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-xs text-stone-500 dark:text-stone-400 font-medium border-t border-stone-200 dark:border-stone-800/80">
                 <div className="flex items-center gap-1 text-amber-500">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-3.5 w-3.5 fill-current" />
@@ -369,53 +334,41 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
                 <span>·</span>
                 <span>+1,200 Alumnas Activas</span>
                 <span>·</span>
+                <span className="inline-flex items-center gap-1 font-bold text-orange-500 dark:text-orange-400">
+                  <Zap className="h-3.5 w-3.5" /> 750 Kcal Post-combustión
+                </span>
+                <span>·</span>
                 <span className="inline-flex items-center gap-1 font-bold text-[#7B6E86] dark:text-[#D2C483]">
-                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Compatible con Wellhub & TotalPass
+                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Wellhub & TotalPass
                 </span>
               </div>
             </div>
 
             {/* Columna Derecha: Galería Fotográfica Real del Estudio */}
             <div className="lg:col-span-5 relative">
-              <div className="relative rounded-3xl overflow-hidden border-2 border-[#7B6E86]/40 shadow-2xl bg-[#1C1824] aspect-[4/5] max-w-md mx-auto">
+              <div className="relative rounded-3xl overflow-hidden border-2 border-[#7B6E86]/40 shadow-2xl bg-[#1C1824] aspect-[4/5] max-w-md mx-auto group">
                 <Image
                   src="/devotion-studio-1.png"
                   alt="Equipo y Alumnas Devotion Heat Room Querétaro"
                   fill
-                  className="object-cover object-center"
+                  className="object-cover object-center group-hover:scale-[1.02] transition-transform duration-500"
                   priority
                 />
 
-                {/* Overlay Gradiente Editorial */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#131017] via-transparent to-black/20" />
+                {/* Overlay Gradiente Editorial suave en la base */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-                {/* Floating Badge: Infrarrojo 33°C */}
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl backdrop-blur-xl bg-black/60 border border-white/15 text-white space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-black tracking-wider text-[#D2C483] uppercase">
-                      <Flame className="h-4 w-4 text-orange-400" />
-                      33°C HEAT ROOM
-                    </span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
-                      CLASES DIARIAS
+                {/* Minimalist Glass Pill limpio y no sobrepuesto */}
+                <div className="absolute bottom-3.5 left-3.5 right-3.5 p-3 rounded-2xl backdrop-blur-md bg-black/60 border border-white/15 text-white flex items-center justify-between gap-2 shadow-lg">
+                  <div className="flex items-center gap-1.5">
+                    <Flame className="h-4 w-4 text-orange-400 shrink-0" />
+                    <span className="text-xs font-black tracking-wider text-[#D2C483] uppercase">
+                      33°C Heat Room
                     </span>
                   </div>
-                  <p className="text-xs text-stone-300 font-medium">
-                    Zibatá · Juriquilla · Campanario · San Isidro
-                  </p>
-                </div>
-              </div>
-
-              {/* Tarjeta flotante secundaria */}
-              <div className="hidden sm:flex items-center gap-3 absolute -bottom-6 -left-6 p-3.5 rounded-2xl backdrop-blur-xl bg-white/90 dark:bg-[#1E1927]/90 border border-[#7B6E86]/30 shadow-xl max-w-xs text-stone-900 dark:text-stone-100">
-                <div className="h-10 w-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-500 shrink-0">
-                  <Zap className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-black">750 Kcal por Sesión</div>
-                  <p className="text-[10px] text-stone-500 dark:text-stone-400">
-                    Efecto post-combustión metabólica de hasta 24 horas.
-                  </p>
+                  <span className="text-[11px] text-stone-300 font-medium truncate">
+                    Zibatá · Juriquilla · Campanario
+                  </span>
                 </div>
               </div>
             </div>
@@ -497,6 +450,55 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
                 Finalizamos las sesiones con enfriamiento consciente y soundbaths con cuencos de
                 cuarzo a la luz de las velas, reseteando tu sistema nervioso parasimpático.
               </p>
+            </div>
+          </div>
+
+          {/* Galería Visual Real del Estudio */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10">
+            <div className="relative rounded-3xl overflow-hidden border border-[#7B6E86]/30 shadow-lg bg-[#1C1824] h-72 sm:h-80 group">
+              <Image
+                src="/devotion-studio-2.png"
+                alt="Coach Paulina V. entrenando en Devotion Heat Room"
+                fill
+                className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+              <div className="absolute bottom-4 left-4 right-4 p-3 rounded-2xl backdrop-blur-md bg-black/60 border border-white/15 text-white flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-[#D2C483] uppercase block">
+                    Enfoque &amp; Precisión Isométrica
+                  </span>
+                  <span className="text-[11px] text-stone-300">
+                    Activación del core profundo sin impacto articular
+                  </span>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-[#7B6E86] text-white text-[10px] font-bold shrink-0">
+                  HOT PILATES
+                </span>
+              </div>
+            </div>
+
+            <div className="relative rounded-3xl overflow-hidden border border-[#7B6E86]/30 shadow-lg bg-[#1C1824] h-72 sm:h-80 group">
+              <Image
+                src="/devotion-studio-3.png"
+                alt="Sudoración desintoxicante y efecto glow bajo calor infrarrojo a 33°C"
+                fill
+                className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+              <div className="absolute bottom-4 left-4 right-4 p-3 rounded-2xl backdrop-blur-md bg-black/60 border border-white/15 text-white flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-[#D2C483] uppercase block">
+                    Efecto Glow &amp; Detox Profundo
+                  </span>
+                  <span className="text-[11px] text-stone-300">
+                    Eliminación de toxinas y estimulación de colágeno natural
+                  </span>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-orange-600 text-white text-[10px] font-bold shrink-0">
+                  33°C INFRARROJO
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1391,23 +1393,21 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
               </ul>
             </div>
 
-            {/* Columna Plataforma & Accesos */}
+            {/* Columna Horario & Atención */}
             <div className="space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-[#D2C483]">
-                Plataforma OS
+                Atención &amp; Horarios
               </h4>
               <ul className="space-y-2 text-xs text-stone-400">
+                <li>Lunes a Viernes: 06:00 a 21:00 hrs</li>
+                <li>Sábados y Domingos: 08:00 a 14:00 hrs</li>
                 <li>
-                  <Link href="/kiosco" className="hover:text-white transition flex items-center gap-1">
-                    <Tablet className="h-3 w-3 text-[#D2C483]" />
-                    <span>Kiosco Recepción</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/admin" className="hover:text-white transition flex items-center gap-1">
-                    <Lock className="h-3 w-3 text-[#D2C483]" />
-                    <span>Consola Administrativa</span>
-                  </Link>
+                  <a
+                    href="tel:+524427804461"
+                    className="hover:text-[#D2C483] transition"
+                  >
+                    +52 442 780 4461
+                  </a>
                 </li>
                 <li>
                   <Link href="/privacidad" className="hover:text-white transition">
@@ -1415,7 +1415,7 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
                   </Link>
                 </li>
                 <li className="pt-2 text-[11px] text-stone-500 font-mono">
-                  DNS: devotion-mx.com
+                  Querétaro, Qro. · devotion-mx.com
                 </li>
               </ul>
             </div>
