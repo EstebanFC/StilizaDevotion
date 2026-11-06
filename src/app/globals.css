@@ -4,6 +4,7 @@
 
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-cinzel: "Cinzel", Georgia, serif;
   --color-primary: #7B6E86;
   --color-secondary: #D2C483;
   --bg-page: #FAF8F5;

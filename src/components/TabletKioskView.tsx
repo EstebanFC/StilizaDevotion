@@ -328,52 +328,56 @@ export function TabletKioskView({
         </div>
 
         {/* 4 Kiosk Sub-Modules */}
-        <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/10">
+        <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1.5 rounded-2xl border border-[#7B6E86]/30">
           <button
             type="button"
             onClick={() => setActiveTab("checkin")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "checkin"
-                ? "bg-amber-400 text-stone-950 shadow"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "checkin"
+                ? "bg-[#7B6E86] text-white shadow-md border border-[#D2C483]/40"
                 : "text-stone-300 hover:bg-white/10"
-              }`}
+            }`}
           >
-            <ScanLine className="h-4 w-4" />
+            <ScanLine className="h-4 w-4 text-[#D2C483]" />
             1. Check-In QR
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("horarios")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "horarios"
-                ? "bg-amber-400 text-stone-950 shadow"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "horarios"
+                ? "bg-[#7B6E86] text-white shadow-md border border-[#D2C483]/40"
                 : "text-stone-300 hover:bg-white/10"
-              }`}
+            }`}
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4 text-[#D2C483]" />
             2. Próximos Horarios & Mapa
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("paquetes")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "paquetes"
-                ? "bg-amber-400 text-stone-950 shadow"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "paquetes"
+                ? "bg-[#7B6E86] text-white shadow-md border border-[#D2C483]/40"
                 : "text-stone-300 hover:bg-white/10"
-              }`}
+            }`}
           >
-            <CreditCard className="h-4 w-4" />
+            <CreditCard className="h-4 w-4 text-[#D2C483]" />
             3. Comprar Tokens / Paquetes
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("eventos")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${activeTab === "eventos"
-                ? "bg-amber-400 text-stone-950 shadow"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "eventos"
+                ? "bg-[#7B6E86] text-white shadow-md border border-[#D2C483]/40"
                 : "text-stone-300 hover:bg-white/10"
-              }`}
+            }`}
           >
-            <PartyPopper className="h-4 w-4" />
+            <PartyPopper className="h-4 w-4 text-[#D2C483]" />
             4. Eventos & Promos ({branchEvents.length})
           </button>
         </div>
@@ -401,10 +405,11 @@ export function TabletKioskView({
                     <button
                       type="button"
                       onClick={() => handleToggleCameraFacing("user")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${cameraFacingMode === "user"
-                          ? "bg-amber-400 text-stone-950 shadow"
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                        cameraFacingMode === "user"
+                          ? "bg-[#D2C483] text-stone-950 shadow"
                           : "text-stone-300 hover:text-white"
-                        }`}
+                      }`}
                       title="Usar Cámara Frontal de la Tablet (ideal cuando está en soporte/base)"
                     >
                       Frontal
@@ -412,10 +417,11 @@ export function TabletKioskView({
                     <button
                       type="button"
                       onClick={() => handleToggleCameraFacing("environment")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${cameraFacingMode === "environment"
-                          ? "bg-amber-400 text-stone-950 shadow"
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                        cameraFacingMode === "environment"
+                          ? "bg-[#D2C483] text-stone-950 shadow"
                           : "text-stone-300 hover:text-white"
-                        }`}
+                      }`}
                       title="Usar Cámara Trasera de la Tablet"
                     >
                       Trasera
@@ -425,10 +431,11 @@ export function TabletKioskView({
                   <button
                     type="button"
                     onClick={() => setCameraActive((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition border ${cameraActive
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition border ${
+                      cameraActive
                         ? "bg-red-500/20 text-red-200 border-red-400/40"
                         : "bg-white/10 text-stone-100 border-white/15 hover:bg-white/20"
-                      }`}
+                    }`}
                   >
                     {cameraActive ? (
                       <>
@@ -436,7 +443,7 @@ export function TabletKioskView({
                       </>
                     ) : (
                       <>
-                        <Camera className="h-3.5 w-3.5 text-amber-300" /> Usar
+                        <Camera className="h-3.5 w-3.5 text-[#D2C483]" /> Usar
                         Cámara QR
                       </>
                     )}
@@ -457,15 +464,15 @@ export function TabletKioskView({
                   value={manualToken}
                   onChange={(e) => setManualToken(e.target.value)}
                   placeholder="Acerca tu QR al lector de la tablet (ej. SD-2026-R03-7741)..."
-                  className="flex-1 rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-stone-400 focus:outline-none focus:border-amber-400 font-mono"
+                  className="flex-1 rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-stone-400 focus:outline-none focus:border-[#D2C483] font-mono"
                   autoFocus
                 />
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold px-5 py-3 text-sm transition inline-flex items-center gap-2 shrink-0"
+                  className="rounded-xl bg-[#7B6E86] hover:bg-[#685B73] border border-[#D2C483]/40 text-white font-bold px-5 py-3 text-sm transition inline-flex items-center gap-2 shrink-0 shadow-md"
                 >
-                  <ScanLine className="h-4 w-4" />
+                  <ScanLine className="h-4 w-4 text-[#D2C483]" />
                   Check-In
                 </button>
               </form>

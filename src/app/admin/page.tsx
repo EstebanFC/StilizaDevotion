@@ -12,6 +12,7 @@ import { ThemeToggleButton } from "@/context/ThemeContext";
 import {
   Bot,
   CalendarCheck,
+  ExternalLink,
   Flame,
   LayoutDashboard,
   LogOut,
@@ -337,6 +338,17 @@ export default function AdminOnlyPortalPage() {
             </nav>
 
             <ThemeToggleButton />
+
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#D2C483]/15 hover:bg-[#D2C483]/25 text-[#7B6E86] dark:text-[#D2C483] border border-[#D2C483]/40 text-xs font-bold px-3 py-2 transition"
+              title="Abrir Landing Page pública de Devotion Heat Room"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span>Ver Web Pública</span>
+            </a>
 
             <button
               type="button"
