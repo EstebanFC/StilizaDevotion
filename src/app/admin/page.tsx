@@ -402,17 +402,32 @@ export default function AdminOnlyPortalPage() {
               const data = await res.json();
               if (data.state) setDb(data.state);
             }}
-            onCreateSessionsBatch={async (batch) => {
+            onCreateSessionsBatch={async (batch, weekMonday) => {
               const res = await fetch("/api/crm", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "create_sessions_batch", batch }),
+                body: JSON.stringify({ action: "create_sessions_batch", batch, weekMonday }),
               });
               const data = await res.json();
               if (data.state) setDb(data.state);
               return {
                 success: Boolean(data.success),
                 count: data.count,
+                error: data.error,
+              };
+            }}
+            onCopyWeekSchedule={async (payload) => {
+              const res = await fetch("/api/crm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "copy_week_schedule", ...payload }),
+              });
+              const data = await res.json();
+              if (data.state) setDb(data.state);
+              return {
+                success: Boolean(data.success),
+                clonedCount: data.clonedCount,
+                targetWeeksCount: data.targetWeeksCount,
                 error: data.error,
               };
             }}

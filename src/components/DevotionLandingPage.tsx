@@ -12,6 +12,13 @@ import {
 } from "@/types/crm";
 import { ThemeToggleButton, useTheme } from "@/context/ThemeContext";
 import {
+  CalendarWeekInfo,
+  addWeeksToMonday,
+  getAvailableCalendarWeeks,
+  getCalendarWeekInfo,
+  getDateForDayInWeek,
+} from "@/lib/calendar-utils";
+import {
   ArrowRight,
   Calendar,
   Check,
@@ -49,8 +56,14 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<Discipline | "all">("all");
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
   const [selectedDay, setSelectedDay] = useState<string>("all");
+  const [selectedWeekMonday, setSelectedWeekMonday] = useState<string>("2026-11-02");
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const availableWeeks = getAvailableCalendarWeeks("2026-11-02");
+  const currentLandingWeekInfo = getCalendarWeekInfo(
+    selectedWeekMonday !== "all" ? selectedWeekMonday : "2026-11-02"
+  );
 
   // Modal de reserva rápida o selección de clase
   const [previewSession, setPreviewSession] = useState<ClassSession | null>(null);
@@ -82,7 +95,19 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
     const matchBranch =
       selectedBranchId === "all" ? true : s.branchId === selectedBranchId;
     const matchDay = selectedDay === "all" ? true : s.dayOfWeek === selectedDay;
-    return matchDiscipline && matchBranch && matchDay;
+
+    let matchWeek = true;
+    if (selectedWeekMonday !== "all") {
+      if (s.date) {
+        matchWeek =
+          s.date >= currentLandingWeekInfo.mondayStr &&
+          s.date <= currentLandingWeekInfo.sundayStr;
+      } else {
+        matchWeek = selectedWeekMonday === "2026-11-02";
+      }
+    }
+
+    return matchDiscipline && matchBranch && matchDay && matchWeek;
   });
 
   // Generador de link de WhatsApp directo
@@ -142,8 +167,8 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
               <span className="font-serif text-xl sm:text-2xl font-black tracking-wider text-[#241E2A] dark:text-[#F6F2EA] leading-none group-hover:text-[#7B6E86] dark:group-hover:text-[#D2C483] transition-colors">
                 DEVOTION
               </span>
-              <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.25em] text-[#7B6E86] dark:text-[#D2C483] font-semibold mt-0.5 uppercase">
-                HEAT ROOM · STILIZA
+              <span className="text-[9px] sm:text-[10px] font-sans tracking-[0.14em] text-[#7B6E86] dark:text-[#D2C483] font-bold mt-0.5 uppercase">
+                HEAT ROOM (TAPETES 33°C) · STILIZA (CAMAS)
               </span>
             </div>
           </Link>
@@ -280,10 +305,10 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* Columna Izquierda: Copy Editorial de Alto Impacto */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              {/* Eyebrow de Marca */}
+              {/* Eyebrow de Marcas Hermanas */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#7B6E86]/30 bg-[#7B6E86]/10 dark:bg-[#7B6E86]/20 text-[#7B6E86] dark:text-[#D2C483] text-xs font-bold tracking-wider uppercase backdrop-blur-md">
                 <Flame className="h-3.5 w-3.5 text-orange-500" />
-                <span>INFERNO HOT PILATES 33°C & REFORMER BOUTIQUE</span>
+                <span>DEVOTION (TAPETES 33°C) &amp; STILIZA (PILATES EN CAMAS)</span>
               </div>
 
               {/* Título Principal con Tipografía Cinzel */}
@@ -294,12 +319,11 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
                 </span>
               </h1>
 
-              {/* Subtítulo legible y descriptivo */}
+              {/* Subtítulo legible y descriptivo: Distinción entre estudios hermanos */}
               <p className="text-base sm:text-lg text-stone-600 dark:text-[#BFB5C9] max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                El calor infrarrojo a <strong>33°C</strong> penetra profundamente en tus
-                músculos para maximizar la quema calórica, acelerar la desintoxicación
-                y tonificar tu core con <strong>cero impacto en tus articulaciones</strong>.
-                Compleméntalo con la precisión de nuestras máquinas Reformer.
+                Dos marcas hermanas unidas en un ecosistema integral: <strong>Devotion</strong>,
+                tu Heat Room a <strong>33°C en tapetes</strong> para desintoxicación celular y alta quema metabólica; y <strong>Stiliza</strong>,
+                entrenamiento boutique de máxima precisión sobre <strong>camas Reformer</strong> con resortes.
               </p>
 
               {/* CTA Group */}
@@ -685,9 +709,55 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
             </div>
           </div>
 
-          {/* Filtros de Sucursal & Día */}
+          {/* Filtros de Calendario Semanal, Sucursal & Día */}
           <div className="space-y-3">
-            {/* Sucursales */}
+            {/* 1. Selector de Semanas Calendario */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-white/70 dark:bg-[#1A1622]/70 border border-stone-200 dark:border-stone-800 shadow-xs">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[#7B6E86] dark:text-[#D2C483]" />
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-stone-500 block">
+                    Semana Calendario:
+                  </span>
+                  <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
+                    {selectedWeekMonday === "all" ? "Todas las semanas programadas" : currentLandingWeekInfo.label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {availableWeeks.map((wk, idx) => {
+                  const isSelected = selectedWeekMonday === wk.mondayStr;
+                  return (
+                    <button
+                      key={wk.mondayStr}
+                      type="button"
+                      onClick={() => setSelectedWeekMonday(wk.mondayStr)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                        isSelected
+                          ? "bg-stone-900 text-[#D2C483] border-stone-900 shadow-sm"
+                          : "bg-white dark:bg-[#15111B] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:border-[#7B6E86]"
+                      }`}
+                    >
+                      Sem {idx + 1} ({wk.shortLabel})
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setSelectedWeekMonday("all")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                    selectedWeekMonday === "all"
+                      ? "bg-stone-900 text-[#D2C483] border-stone-900 shadow-sm"
+                      : "bg-white dark:bg-[#15111B] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:border-[#7B6E86]"
+                  }`}
+                >
+                  Todas
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Sucursales */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 type="button"
@@ -716,22 +786,42 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
               ))}
             </div>
 
-            {/* Días de la semana */}
+            {/* 3. Días de la semana con fechas correspondientes */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {["all", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setSelectedDay(d)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
-                    selectedDay === d
-                      ? "bg-[#D2C483] text-stone-950 border-[#D2C483] font-bold shadow-sm"
-                      : "bg-white/60 dark:bg-[#1A1622] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:text-stone-900"
-                  }`}
-                >
-                  {d === "all" ? "Todos los días" : d}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setSelectedDay("all")}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+                  selectedDay === "all"
+                    ? "bg-[#D2C483] text-stone-950 border-[#D2C483] font-bold shadow-sm"
+                    : "bg-white/60 dark:bg-[#1A1622] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:text-stone-900"
+                }`}
+              >
+                Todos los días
+              </button>
+              {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map((d) => {
+                const dayInfo = currentLandingWeekInfo.days.find((item) => item.dayOfWeek === d);
+                const dayNumStr = selectedWeekMonday !== "all" && dayInfo ? ` ${dayInfo.dayNum}` : "";
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setSelectedDay(d)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border flex items-center gap-1 ${
+                      selectedDay === d
+                        ? "bg-[#D2C483] text-stone-950 border-[#D2C483] font-bold shadow-sm"
+                        : "bg-white/60 dark:bg-[#1A1622] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:text-stone-900"
+                    }`}
+                  >
+                    <span>{d}</span>
+                    {dayNumStr && (
+                      <span className="text-[10px] font-mono opacity-80">
+                        {dayNumStr}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1331,8 +1421,8 @@ export function DevotionLandingPage({ initialDb }: DevotionLandingPageProps) {
                   <span className="font-serif text-xl font-bold tracking-wider text-white block">
                     DEVOTION
                   </span>
-                  <span className="text-[10px] font-serif tracking-[0.2em] text-[#D2C483] block uppercase">
-                    HEAT ROOM · STILIZA
+                  <span className="text-[9px] font-sans tracking-[0.16em] text-[#D2C483] block uppercase font-bold">
+                    HEAT ROOM (TAPETES 33°C) · STILIZA (PILATES EN CAMAS)
                   </span>
                 </div>
               </div>

@@ -20,6 +20,12 @@ import {
   DayOfWeek,
   StudioPromoEvent,
 } from "@/types/crm";
+import {
+  getCalendarWeekInfo,
+  getDateForDayInWeek,
+  getDayOfWeekFromDate,
+  getMondayOfDate,
+} from "@/lib/calendar-utils";
 
 export async function GET() {
   const state = await loadStateFromSupabase();
@@ -512,7 +518,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "create_sessions_batch") {
-      const { batch } = body as {
+      const { batch, weekMonday } = body as {
         batch: Array<{
           title: string;
           branchId: string;
@@ -521,7 +527,9 @@ export async function POST(req: NextRequest) {
           instructor?: string;
           isSpecialClass?: boolean;
           specialBadge?: string;
+          date?: string;
         }>;
+        weekMonday?: string;
       };
 
       if (!Array.isArray(batch) || batch.length === 0) {
@@ -534,6 +542,7 @@ export async function POST(req: NextRequest) {
       const state = readDB();
       const createdSessions: ClassSession[] = [];
       const timestamp = Date.now();
+      const defaultMonday = weekMonday || "2026-11-02";
 
       batch.forEach((item, index) => {
         const room =
@@ -556,7 +565,8 @@ export async function POST(req: NextRequest) {
           .toUpperCase();
 
         const timeSlug = timeStr.replace(":", "");
-        const daySlug = (item.dayOfWeek || "martes")
+        const dayOfWeek = item.dayOfWeek || "Martes";
+        const daySlug = dayOfWeek
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "");
@@ -573,14 +583,15 @@ export async function POST(req: NextRequest) {
           ? "deju"
           : "deca";
 
-        const generatedId = `ses-${branchCode}-${daySlug}-${timeSlug}-${timestamp.toString().slice(-4)}${index}`;
+        const targetDate = item.date || getDateForDayInWeek(defaultMonday, dayOfWeek);
+        const generatedId = `ses-${branchCode}-${targetDate.replace(/-/g, "")}-${timeSlug}-${timestamp.toString().slice(-4)}${index}`;
 
-        // Si ya existe una clase exactamente en la misma sucursal, día y hora, actualizarla en vez de duplicar
+        // Si ya existe una clase exactamente en la misma sucursal, fecha y hora, actualizarla en vez de duplicar
         const existingIdx = state.sessions.findIndex(
           (s) =>
             s.branchId === item.branchId &&
-            s.dayOfWeek === item.dayOfWeek &&
-            s.startTime === timeStr
+            s.startTime === timeStr &&
+            (s.date === targetDate || (!s.date && s.dayOfWeek === dayOfWeek))
         );
 
         const newSession: ClassSession = {
@@ -598,8 +609,8 @@ export async function POST(req: NextRequest) {
           roomName: room.name,
           instructor,
           instructorAvatar: initials || "CO",
-          date: "2026-10-20",
-          dayOfWeek: item.dayOfWeek,
+          date: targetDate,
+          dayOfWeek: dayOfWeek,
           timeBlock,
           startTime: timeStr,
           durationMinutes: 50,
@@ -621,6 +632,103 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         count: createdSessions.length,
+        state,
+      });
+    }
+
+    if (action === "copy_week_schedule") {
+      const {
+        sourceMonday,
+        targetMondays,
+        branchId,
+        overwriteExisting = true,
+      } = body as {
+        sourceMonday: string;
+        targetMondays: string[];
+        branchId?: string;
+        overwriteExisting?: boolean;
+      };
+
+      if (!sourceMonday || !Array.isArray(targetMondays) || targetMondays.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Debes especificar la semana origen y al menos una semana destino.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const state = readDB();
+      const sourceInfo = getCalendarWeekInfo(sourceMonday);
+      const sourceMondayDate = sourceInfo.mondayStr;
+      const sourceSundayDate = sourceInfo.sundayStr;
+
+      // Filtrar sesiones de la semana origen
+      const sourceSessions = state.sessions.filter((s) => {
+        if (branchId && s.branchId !== branchId) return false;
+        if (s.date && s.date >= sourceMondayDate && s.date <= sourceSundayDate) return true;
+        // Compatibilidad hacia atrás si faltara date
+        if (!s.date && s.dayOfWeek) return true;
+        return false;
+      });
+
+      if (sourceSessions.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `No se encontraron clases en la semana origen (${sourceInfo.label}) para replicar.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      let totalCloned = 0;
+      const timestamp = Date.now();
+
+      targetMondays.forEach((targetMonday, tIdx) => {
+        if (targetMonday === sourceMonday) return;
+
+        sourceSessions.forEach((src, sIdx) => {
+          const day = src.dayOfWeek || (src.date ? getDayOfWeekFromDate(src.date) : "Lunes");
+          const targetDate = getDateForDayInWeek(targetMonday, day);
+
+          const timeSlug = (src.startTime || "0700").replace(":", "");
+          const branchCode = src.branchId ? src.branchId.replace(/[^a-z0-9]/gi, "").slice(-4) : "br";
+          const newId = `ses-${branchCode}-${targetDate.replace(/-/g, "")}-${timeSlug}-${timestamp.toString().slice(-4)}${tIdx}${sIdx}`;
+
+          const clonedSession: ClassSession = {
+            ...src,
+            id: newId,
+            date: targetDate,
+            dayOfWeek: day,
+          };
+
+          const existingIdx = state.sessions.findIndex(
+            (s) =>
+              s.branchId === clonedSession.branchId &&
+              s.date === targetDate &&
+              s.startTime === clonedSession.startTime
+          );
+
+          if (existingIdx >= 0) {
+            if (overwriteExisting) {
+              clonedSession.id = state.sessions[existingIdx].id;
+              state.sessions[existingIdx] = clonedSession;
+              totalCloned++;
+            }
+          } else {
+            state.sessions.push(clonedSession);
+            totalCloned++;
+          }
+        });
+      });
+
+      await saveStateToSupabase(state);
+      return NextResponse.json({
+        success: true,
+        clonedCount: totalCloned,
+        targetWeeksCount: targetMondays.length,
         state,
       });
     }

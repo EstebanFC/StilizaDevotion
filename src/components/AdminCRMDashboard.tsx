@@ -13,6 +13,14 @@ import {
 } from "@/types/crm";
 import { StudioSpotMap } from "@/components/StudioSpotMap";
 import {
+  CalendarWeekInfo,
+  addWeeksToMonday,
+  getAvailableCalendarWeeks,
+  getCalendarWeekInfo,
+  getDateForDayInWeek,
+  getDayOfWeekFromDate,
+} from "@/lib/calendar-utils";
+import {
   AlertTriangle,
   Award,
   BarChart3,
@@ -86,8 +94,16 @@ interface AdminCRMDashboardProps {
       instructor?: string;
       isSpecialClass?: boolean;
       specialBadge?: string;
-    }>
+      date?: string;
+    }>,
+    weekMonday?: string
   ) => Promise<{ success: boolean; count?: number; error?: string }>;
+  onCopyWeekSchedule?: (payload: {
+    sourceMonday: string;
+    targetMondays: string[];
+    branchId?: string;
+    overwriteExisting?: boolean;
+  }) => Promise<{ success: boolean; clonedCount?: number; targetWeeksCount?: number; error?: string }>;
   onBatchUpdateCoach?: (
     sessionIds: string[],
     instructor: string
@@ -164,6 +180,7 @@ export function AdminCRMDashboard({
   onDeleteClient,
   onCreateSession,
   onCreateSessionsBatch,
+  onCopyWeekSchedule,
   onBatchUpdateCoach,
   onBatchDeleteSessions,
   onUpdateSession,
@@ -182,6 +199,24 @@ export function AdminCRMDashboard({
   onResetDemo,
   onSyncExternalBooking,
 }: AdminCRMDashboardProps) {
+  // Calendar Week state (Lunes base 2 de Noviembre 2026)
+  const [activeWeekMonday, setActiveWeekMonday] = useState<string>("2026-11-02");
+  const availableWeeks = getAvailableCalendarWeeks("2026-11-02");
+  const currentWeekInfo = getCalendarWeekInfo(activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02");
+
+  // Replicación de Horarios Semanales Modal state
+  const [isReplicatingWeek, setIsReplicatingWeek] = useState<boolean>(false);
+  const [replicationTargetWeeks, setReplicationTargetWeeks] = useState<string[]>([
+    "2026-11-09",
+  ]);
+  const [replicationBranchId, setReplicationBranchId] = useState<string>("all");
+  const [replicationOverwrite, setReplicationOverwrite] = useState<boolean>(true);
+  const [isSubmittingReplication, setIsSubmittingReplication] = useState<boolean>(false);
+  const [replicationResultMsg, setReplicationResultMsg] = useState<{
+    success: boolean;
+    text: string;
+  } | null>(null);
+
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [dayFilter, setDayFilter] = useState<string>("Martes");
   const [blockFilter, setBlockFilter] = useState<"all" | "manana" | "tarde">("all");
@@ -434,11 +469,14 @@ export function AdminCRMDashboard({
       }
 
       if (onCreateSessionsBatch) {
-        const res = await onCreateSessionsBatch(batchPayload);
+        const res = await onCreateSessionsBatch(
+          batchPayload,
+          activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02"
+        );
         if (res.success) {
           setBatchResultMsg({
             success: true,
-            text: `¡Éxito! Se programaron ${res.count || batchPayload.length} clases en Supabase correctamente.`,
+            text: `¡Éxito! Se programaron ${res.count || batchPayload.length} clases en Supabase correctamente para la semana seleccionada.`,
           });
           setTimeout(() => {
             setActiveDrawer(null);
@@ -453,11 +491,15 @@ export function AdminCRMDashboard({
       } else {
         for (const item of batchPayload) {
           const room = db.rooms.find((r) => r.branchId === item.branchId) || db.rooms[0];
+          const calculatedDate = getDateForDayInWeek(
+            activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02",
+            item.dayOfWeek
+          );
           await onCreateSession({
             title: item.title,
             roomId: room.id,
             instructor: item.instructor || "Coach Por Asignar",
-            date: "2026-10-20",
+            date: calculatedDate,
             dayOfWeek: item.dayOfWeek,
             startTime: item.startTime,
             isSpecialClass: item.isSpecialClass,
@@ -483,6 +525,17 @@ export function AdminCRMDashboard({
       const hourNum = parseInt(s.startTime.split(":")[0] || "18", 10);
       const computedBlock = s.timeBlock || (hourNum < 13 ? "manana" : "tarde");
       if (computedBlock !== blockFilter) return false;
+    }
+    // Filtrado por Semana Calendario
+    if (activeWeekMonday !== "all") {
+      if (s.date) {
+        if (s.date < currentWeekInfo.mondayStr || s.date > currentWeekInfo.sundayStr) {
+          return false;
+        }
+      } else {
+        // Sesiones antiguas sin fecha asignada solo se muestran en semana base
+        if (activeWeekMonday !== "2026-11-02") return false;
+      }
     }
     return true;
   });
@@ -2031,7 +2084,103 @@ export function AdminCRMDashboard({
           </div>
         </div>
 
-        {/* Pestañas de Días de la Semana (Lunes a Domingo) */}
+        {/* ================================================================
+            BARRA DE CALENDARIO SEMANAL Y REPLICACIÓN DE HORARIOS
+           ================================================================ */}
+        <div className="rounded-2xl p-3.5 sm:p-4 bg-gradient-to-r from-stone-50 via-amber-50/30 to-stone-100 dark:from-[#191522] dark:via-[#201a2d] dark:to-[#171320] border border-stone-200/90 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+          {/* Navegador de Semanas */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const base = activeWeekMonday === "all" ? "2026-11-02" : activeWeekMonday;
+                  setActiveWeekMonday(addWeeksToMonday(base, -1));
+                }}
+                className="h-8 w-8 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold flex items-center justify-center transition shadow-xs text-xs"
+                title="Semana anterior"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const base = activeWeekMonday === "all" ? "2026-11-02" : activeWeekMonday;
+                  setActiveWeekMonday(addWeeksToMonday(base, 1));
+                }}
+                className="h-8 w-8 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold flex items-center justify-center transition shadow-xs text-xs"
+                title="Semana siguiente"
+              >
+                ▶
+              </button>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  {activeWeekMonday === "all" ? "Vista Global de Horarios" : `Semana ${currentWeekInfo.weekNumberInMonth} de ${currentWeekInfo.monthName}`}
+                </span>
+                {activeWeekMonday !== "all" && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold">
+                    {currentWeekInfo.shortLabel}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm font-extrabold text-stone-900 dark:text-stone-100 leading-tight">
+                {activeWeekMonday === "all" ? "Mostrando todas las semanas del calendario" : currentWeekInfo.label}
+              </p>
+            </div>
+          </div>
+
+          {/* Selector Rápido de Semanas & Botón Replicar */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {availableWeeks.map((wk, idx) => {
+              const isSelected = activeWeekMonday === wk.mondayStr;
+              return (
+                <button
+                  key={wk.mondayStr}
+                  type="button"
+                  onClick={() => setActiveWeekMonday(wk.mondayStr)}
+                  className={`rounded-xl px-2.5 py-1 text-xs font-bold transition border ${
+                    isSelected
+                      ? "bg-stone-900 text-amber-200 border-stone-900 shadow-sm"
+                      : "bg-white dark:bg-[#1E1927] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800"
+                  }`}
+                >
+                  Sem {idx + 1} ({wk.shortLabel})
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setActiveWeekMonday("all")}
+              className={`rounded-xl px-2.5 py-1 text-xs font-bold transition border ${
+                activeWeekMonday === "all"
+                  ? "bg-stone-900 text-amber-200 border-stone-900 shadow-sm"
+                  : "bg-white dark:bg-[#1E1927] text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800"
+              }`}
+            >
+              Todas
+            </button>
+
+            {/* BOTÓN REPLICAR HORARIOS */}
+            <button
+              type="button"
+              onClick={() => {
+                const base = activeWeekMonday === "all" ? "2026-11-02" : activeWeekMonday;
+                setReplicationTargetWeeks([addWeeksToMonday(base, 1)]);
+                setReplicationResultMsg(null);
+                setIsReplicatingWeek(true);
+              }}
+              className="ml-1 sm:ml-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 font-black text-xs px-3 py-1.5 shadow-sm inline-flex items-center gap-1.5 transition active:scale-95"
+            >
+              <Copy className="h-3.5 w-3.5 text-stone-950" />
+              <span>Replicar Semana</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Pestañas de Días de la Semana (Lunes a Domingo con Fechas Exactas) */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-stone-100 dark:border-stone-800 pb-3">
           <button
             type="button"
@@ -2053,19 +2202,35 @@ export function AdminCRMDashboard({
               "Sábado",
               "Domingo",
             ] as DayOfWeek[]
-          ).map((day) => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => setDayFilter(day)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${dayFilter === day
-                  ? "bg-stone-900 text-amber-200 shadow-sm"
-                  : "bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800"
-                }`}
-            >
-              {day}
-            </button>
-          ))}
+          ).map((day) => {
+            const dayInfo = currentWeekInfo.days.find((d) => d.dayOfWeek === day);
+            const dateNum = activeWeekMonday !== "all" && dayInfo ? dayInfo.dayNum : null;
+
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setDayFilter(day)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${dayFilter === day
+                    ? "bg-stone-900 text-amber-200 shadow-sm"
+                    : "bg-stone-50 dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800"
+                  }`}
+              >
+                <span>{day}</span>
+                {dateNum && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono font-bold ${
+                      dayFilter === day
+                        ? "bg-amber-400/20 text-amber-300"
+                        : "bg-stone-200/80 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
+                    }`}
+                  >
+                    {dateNum}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {editingSession && (
@@ -3157,6 +3322,289 @@ export function AdminCRMDashboard({
           </table>
         </div>
       </div>
+
+      {/* =====================================================================
+          MODAL: REPLICAR HORARIO SEMANAL ENTRE SEMANAS CALENDARIO
+         ===================================================================== */}
+      {isReplicatingWeek && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1C1824] border border-stone-200 dark:border-stone-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                  <Copy className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
+                    Replicar Horario Semanal Completo
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Clona todas las clases y coaches de una semana a otra en 1 clic.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReplicatingWeek(false)}
+                className="p-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Semana Origen Info */}
+            <div className="rounded-2xl p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 text-xs flex items-center justify-between">
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-300 block">
+                  Semana Origen (Fuente):
+                </span>
+                <span className="text-stone-700 dark:text-stone-300 font-semibold">
+                  {currentWeekInfo.label} (Semana {currentWeekInfo.weekNumberInMonth})
+                </span>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-white dark:bg-stone-900 text-amber-700 dark:text-amber-300 font-mono font-bold text-[11px] border border-amber-200 dark:border-amber-800">
+                {db.sessions.filter((s) => s.date ? (s.date >= currentWeekInfo.mondayStr && s.date <= currentWeekInfo.sundayStr) : true).length} clases activas
+              </span>
+            </div>
+
+            {/* Accesos Rápidos de Replicación */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block">
+                Accesos rápidos de replicación:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                {/* 1. Siguiente semana */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextWk = addWeeksToMonday(activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02", 1);
+                    setReplicationTargetWeeks([nextWk]);
+                  }}
+                  className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 hover:border-amber-400 text-left transition"
+                >
+                  <span className="font-bold block text-stone-900 dark:text-stone-100">
+                    ➡️ Siguiente (+1)
+                  </span>
+                  <span className="text-[10px] text-stone-500">
+                    Clonar a la semana próxima inmediata
+                  </span>
+                </button>
+
+                {/* 2. Semanas alternas */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02";
+                    const altWk = addWeeksToMonday(base, 2);
+                    setReplicationTargetWeeks([altWk]);
+                  }}
+                  className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 hover:border-amber-400 text-left transition"
+                >
+                  <span className="font-bold block text-stone-900 dark:text-stone-100">
+                    🔄 Alternas (1→3 ó 2→4)
+                  </span>
+                  <span className="text-[10px] text-stone-500">
+                    Clonar a la semana subsiguiente (+2)
+                  </span>
+                </button>
+
+                {/* 3. Todo el mes */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02";
+                    const allOther = availableWeeks
+                      .map((w) => w.mondayStr)
+                      .filter((m) => m !== base);
+                    setReplicationTargetWeeks(allOther);
+                  }}
+                  className="p-2.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 hover:border-amber-500 text-left transition"
+                >
+                  <span className="font-bold block text-amber-900 dark:text-amber-300">
+                    🌟 Todo el Mes (4 sem)
+                  </span>
+                  <span className="text-[10px] text-stone-500">
+                    Llenar todas las semanas del mes
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de semanas destino con checkboxes */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block">
+                Selecciona las semanas destino donde replicar:
+              </label>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {availableWeeks.map((wk, idx) => {
+                  const isCurrent = (activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02") === wk.mondayStr;
+                  const isChecked = replicationTargetWeeks.includes(wk.mondayStr);
+
+                  return (
+                    <label
+                      key={wk.mondayStr}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                        isCurrent
+                          ? "opacity-50 bg-stone-100 dark:bg-stone-900 border-stone-200 dark:border-stone-800 cursor-not-allowed"
+                          : isChecked
+                          ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700"
+                          : "bg-white dark:bg-[#1A1622] border-stone-200 dark:border-stone-800 hover:bg-stone-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          disabled={isCurrent}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setReplicationTargetWeeks([...replicationTargetWeeks, wk.mondayStr]);
+                            } else {
+                              setReplicationTargetWeeks(
+                                replicationTargetWeeks.filter((m) => m !== wk.mondayStr)
+                              );
+                            }
+                          }}
+                          className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-stone-300"
+                        />
+                        <div>
+                          <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                            Semana {idx + 1}: {wk.label}
+                          </span>
+                          <span className="text-[10px] text-stone-500">
+                            {wk.shortLabel}
+                          </span>
+                        </div>
+                      </div>
+                      {isCurrent && (
+                        <span className="text-[10px] font-bold text-stone-500 uppercase">
+                          (Semana Origen)
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Filtro opcional por sucursal */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                  Sucursal a replicar:
+                </label>
+                <select
+                  value={replicationBranchId}
+                  onChange={(e) => setReplicationBranchId(e.target.value)}
+                  className="w-full rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 p-2 text-stone-900 dark:text-stone-100 font-medium"
+                >
+                  <option value="all">Todas las sucursales (Devotion &amp; Stiliza)</option>
+                  {db.branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      [{b.brand}] {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                  Modo de guardado:
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={replicationOverwrite}
+                    onChange={(e) => setReplicationOverwrite(e.target.checked)}
+                    className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 border-stone-300"
+                  />
+                  <span className="text-[11px] text-stone-700 dark:text-stone-300 font-medium">
+                    Sobrescribir clases repetidas en la semana destino
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Resultado / Alerta */}
+            {replicationResultMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs font-semibold ${
+                  replicationResultMsg.success
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                    : "bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800"
+                }`}
+              >
+                {replicationResultMsg.text}
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100 dark:border-stone-800">
+              <button
+                type="button"
+                onClick={() => setIsReplicatingWeek(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingReplication || replicationTargetWeeks.length === 0}
+                onClick={async () => {
+                  if (replicationTargetWeeks.length === 0) return;
+                  setIsSubmittingReplication(true);
+                  setReplicationResultMsg(null);
+                  try {
+                    if (onCopyWeekSchedule) {
+                      const res = await onCopyWeekSchedule({
+                        sourceMonday: activeWeekMonday !== "all" ? activeWeekMonday : "2026-11-02",
+                        targetMondays: replicationTargetWeeks,
+                        branchId: replicationBranchId === "all" ? undefined : replicationBranchId,
+                        overwriteExisting: replicationOverwrite,
+                      });
+                      if (res.success) {
+                        setReplicationResultMsg({
+                          success: true,
+                          text: `¡Éxito! Se replicaron ${res.clonedCount || "las"} clases correctamente en las semanas seleccionadas. Ahora puedes personalizar días u horas puntuales sin alterar otras semanas.`,
+                        });
+                        setTimeout(() => {
+                          setIsReplicatingWeek(false);
+                          setReplicationResultMsg(null);
+                        }, 2500);
+                      } else {
+                        setReplicationResultMsg({
+                          success: false,
+                          text: res.error || "No fue posible replicar el horario.",
+                        });
+                      }
+                    }
+                  } catch (err) {
+                    setReplicationResultMsg({
+                      success: false,
+                      text: err instanceof Error ? err.message : "Error de conexión al replicar.",
+                    });
+                  } finally {
+                    setIsSubmittingReplication(false);
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 dark:bg-amber-400 dark:hover:bg-amber-500 dark:text-stone-950 font-black text-xs shadow-md transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSubmittingReplication ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Replicando en Supabase...</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    <span>Aplicar y Replicar Horario</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
